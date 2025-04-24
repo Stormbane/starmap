@@ -1,0 +1,6 @@
+test next moon rise yesterday.
+improve performance by plotting vector scatter
+add constellations
+add info about moon phase
+add info about date and time of night sky
+add planet positions 
