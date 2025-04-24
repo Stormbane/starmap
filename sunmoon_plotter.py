@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from pytz import timezone, utc
+import logging
 
 def center_azimuth(azimuths):
     """Convert from 0-360 to -180 to 180 with North at 0."""
@@ -62,15 +63,25 @@ def get_body_path_with_riseset(body, observer, rise, set):
 
 def mark_point(ax, x, y, label, color, time=None, local_tz=None, y_offset=3):
     """Mark a point on the plot with a label and optional time."""
+    logging.debug(f"mark_point called with label='{label}', time={time}, local_tz={local_tz}")
+    
     if time and local_tz:
         # Handle timezone conversion properly
         if time.tzinfo is None:
             # If time is naive, assume it's UTC
+            logging.debug(f"Time is naive, localizing to UTC: {time}")
             local_time = utc.localize(time).astimezone(local_tz)
         else:
             # If time already has timezone info, just convert it
+            logging.debug(f"Time has timezone info: {time.tzinfo}, converting to {local_tz}")
             local_time = time.astimezone(local_tz)
+        
+        logging.debug(f"Converted time: {local_time}")
         label = f"{label} {local_time.strftime('%H:%M')}"
+        logging.debug(f"Final label: {label}")
+    else:
+        logging.debug(f"No time or timezone provided, using original label: {label}")
+    
     ax.scatter([x], [y], color=color, edgecolor='black', s=100, zorder=5)
     ax.text(x, y + y_offset, label, color=color, fontsize=12, fontweight='bold', ha='center')
 
@@ -125,8 +136,12 @@ def plot_sun_path(ax, observer, local_dt, local_tz):
 
         # Find max altitude point
         max_alt_idx = np.argmax(sun_alt)
+        
+        logging.debug(f"Noon time: {sun_times[max_alt_idx]}")
+        logging.debug(f"Noon time type: {type(sun_times[max_alt_idx])}")
+        logging.debug(f"Noon time tzinfo: {sun_times[max_alt_idx].tzinfo if hasattr(sun_times[max_alt_idx], 'tzinfo') else 'None'}")
 
-        mark_point(ax, sun_az_centered[max_alt_idx], sun_alt[max_alt_idx], f"Noon {sun_alt[max_alt_idx]:.1f}°", 'gold', sun_times[max_alt_idx])
+        mark_point(ax, sun_az_centered[max_alt_idx], sun_alt[max_alt_idx], f"Noon {sun_alt[max_alt_idx]:.0f}°", 'gold', sun_times[max_alt_idx], local_tz)
         # Calculate midpoint altitude between max and horizon
         mid_alt = sun_alt[max_alt_idx] / 2
         
@@ -136,8 +151,8 @@ def plot_sun_path(ax, observer, local_dt, local_tz):
         rising_mid_idx = np.argmin(rising_diffs)
         setting_mid_idx = max_alt_idx + np.argmin(setting_diffs)
         
-        mark_point(ax, sun_az_centered[rising_mid_idx], sun_alt[rising_mid_idx], "↖️", 'gold', sun_times[rising_mid_idx])
-        mark_point(ax, sun_az_centered[setting_mid_idx], sun_alt[setting_mid_idx], "↙️", 'gold', sun_times[setting_mid_idx])
+        mark_point(ax, sun_az_centered[rising_mid_idx], sun_alt[rising_mid_idx], "↖️", 'gold', sun_times[rising_mid_idx], local_tz)
+        mark_point(ax, sun_az_centered[setting_mid_idx], sun_alt[setting_mid_idx], "↙️", 'gold', sun_times[setting_mid_idx], local_tz)
     
     return {
         'azimuth': sun_az_centered,
@@ -196,7 +211,7 @@ def plot_moon_path(ax, observer, local_dt, local_tz):
         
         # Find the point of maximum altitude
         max_alt_idx = np.argmax(moon_alt)
-        mark_point(ax, moon_az_centered[max_alt_idx], moon_alt[max_alt_idx], "High Moon", 'silver', moon_times[max_alt_idx], local_tz, y_offset=2)
+        mark_point(ax, moon_az_centered[max_alt_idx], moon_alt[max_alt_idx], f"High Moon {moon_alt[max_alt_idx]:.0f}°", 'silver', moon_times[max_alt_idx], local_tz, y_offset=2)
     
     return {
         'azimuth': moon_az_centered,

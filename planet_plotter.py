@@ -3,47 +3,88 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 from pytz import timezone, utc
+import matplotlib.colors as mcolors
+import logging
 
-def get_planet_path(planet, observer, start_time, end_time):
-    """Calculate the path of a planet over a given time period."""
-    # Sample every 30 minutes
-    times = [start_time + timedelta(minutes=i) for i in range(0, int((end_time - start_time).total_seconds() / 60), 30)]
-    az, alt, tlist = [], [], []
+def get_planet_position(planet, observer, local_dt):
+    """
+    Calculate the position of a planet at a specific date and time.
     
-    for t in times:
-        obs = ephem.Observer()
-        obs.lat, obs.lon, obs.elev = observer.lat, observer.lon, observer.elev
-        obs.date = t.strftime('%Y/%m/%d %H:%M:%S')
-        planet.compute(obs)
-        altitude = np.degrees(planet.alt)
-        if altitude > 0:  # Only include points above horizon
-            az.append(np.degrees(planet.az))
-            alt.append(altitude)
-            tlist.append(t)
+    Parameters:
+    -----------
+    planet : ephem.Planet
+        The planet to calculate the position for
+    observer : ephem.Observer
+        The observer location
+    local_dt : datetime
+        The local date and time
+        
+    Returns:
+    --------
+    tuple
+        (azimuth, altitude) in degrees, or (None, None) if planet is below horizon
+    """
+    # Convert local datetime to UTC
+    utc_dt = local_dt.astimezone(utc)
     
-    return np.array(az), np.array(alt), tlist
+    # Create a copy of the observer
+    obs = ephem.Observer()
+    obs.lat, obs.lon, obs.elev = observer.lat, observer.lon, observer.elev
+    obs.date = utc_dt.strftime('%Y/%m/%d %H:%M:%S')
+    
+    # Compute planet position
+    planet.compute(obs)
+    
+    # Get altitude and azimuth
+    altitude = np.degrees(planet.alt)
+    azimuth = np.degrees(planet.az)
+    
+    # Check if planet is above horizon
+    if altitude > 0:
+        return azimuth, altitude
+    else:
+        return None, None
 
-def center_azimuth(azimuths):
+def center_azimuth(azimuth):
     """Convert from 0-360 to -180 to 180 with North at 0."""
-    return (azimuths - 180) % 360 - 180
+    return (azimuth - 180) % 360 - 180
 
-def mark_planet(ax, x, y, label, color, time, local_tz, y_offset=2):
-    """Mark a point on the plot with a label and time."""
-    if time:
-        # Handle timezone conversion properly
-        if time.tzinfo is None:
-            # If time is naive, assume it's UTC
-            local_time = utc.localize(time).astimezone(local_tz)
-        else:
-            # If time already has timezone info, just convert it
-            local_time = time.astimezone(local_tz)
-        label = f"{label} {local_time.strftime('%H:%M')}"
-    ax.scatter([x], [y], color=color, edgecolor='black', s=100, zorder=5)
-    ax.text(x, y + y_offset, label, color=color, fontsize=12, fontweight='bold', ha='center')
+def get_text_color(bg_color):
+    """
+    Determine if text should be black or white based on background color brightness.
+    
+    Parameters:
+    -----------
+    bg_color : str
+        Hex color code or named color
+    
+    Returns:
+    --------
+    str
+        'black' for light backgrounds, 'white' for dark backgrounds
+    """
+    # Convert color to RGB values
+    rgb = mcolors.to_rgb(bg_color)
+    
+    # Calculate perceived brightness using ITU-R BT.709 coefficients
+    brightness = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+    
+    # Return black for light backgrounds, white for dark
+    return 'black' if brightness > 0.5 else 'white'
+
+def mark_planet(ax, x, y, symbol, color, local_dt, local_tz, y_offset=1):
+    """Mark a point on the plot with a planet symbol."""
+    # Plot the planet as a dot
+    ax.scatter([x], [y], color=color, edgecolor='black', s=300, zorder=5)
+    
+    # Add the planet symbol as text
+    ax.text(x, y, symbol, color=get_text_color(color), fontsize=16, fontweight='bold', ha='center', va='center', zorder=10)
+
 
 def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
     """
-    Plot the paths of planets on the given axes.
+    Plot the positions of planets at the specified date and time.
+    Only planets visible at the specified date and time will be plotted.
     
     Parameters:
     -----------
@@ -64,13 +105,13 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
     dict
         Dictionary of planet objects that were plotted
     """
-    # Define planet colors
-    planet_colors = {
-        'Mercury': '#1A873A',  # Green
-        'Venus': '#FFFFE3',    # White
-        'Mars': '#700101',     # Red
-        'Jupiter': '#FFDD40',  # Yellow
-        'Saturn': '#042682'    # Blue
+    # Define planet colors and symbols
+    planet_info = {
+        'Mercury': {'color': '#1A873A', 'symbol': '☿'},  # Green
+        'Venus': {'color': '#FFFFE3', 'symbol': '♀'},    # White
+        'Mars': {'color': '#700101', 'symbol': '♂'},     # Red
+        'Jupiter': {'color': '#FFDD40', 'symbol': '♃'},  # Yellow
+        'Saturn': {'color': '#042682', 'symbol': '♄'}    # Blue
     }
     
     # Create planet objects
@@ -86,29 +127,39 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
     if include_planets is None:
         include_planets = list(planets.keys())
     
-    # Calculate planet paths for the full day
-    day_start = local_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    day_end = day_start + timedelta(days=1)
-    
     # Plot each planet
     plotted_planets = {}
+    visible_planets = []
+    
+    # Check which planets are visible and plot them
     for planet_name, planet in planets.items():
         if planet_name in include_planets:
-            # Get planet path
-            az, alt, times = get_planet_path(planet, observer, day_start, day_end)
+            # Get planet position
+            azimuth, altitude = get_planet_position(planet, observer, local_dt)
             
-            if len(az) > 0:
-                # Center the azimuths
-                az_centered = center_azimuth(az)
+            if azimuth is not None and altitude is not None:
+                # Planet is visible
+                visible_planets.append(planet_name)
+                logging.info(f"{planet_name} is visible at {local_dt} at azimuth {azimuth:.2f}°, altitude {altitude:.2f}°")
                 
-                # Plot the path
-                ax.plot(az_centered, alt, color=planet_colors[planet_name], linewidth=1, label=f'{planet_name} Path')
+                # Center the azimuth
+                az_centered = center_azimuth(azimuth)
                 
-                # Mark highest point
-                max_alt_idx = np.argmax(alt)
-                mark_planet(ax, az_centered[max_alt_idx], alt[max_alt_idx], planet_name, 
-                           planet_colors[planet_name], times[max_alt_idx], local_tz)
+                # Get planet color and symbol
+                color = planet_info[planet_name]['color']
+                symbol = planet_info[planet_name]['symbol']
+                
+                # Mark the planet
+                mark_planet(ax, az_centered, altitude, symbol, color, local_dt, local_tz)
                 
                 plotted_planets[planet_name] = planet
+            else:
+                logging.info(f"{planet_name} is not visible at {local_dt}")
+    
+    # Log summary of visible planets
+    if visible_planets:
+        logging.info(f"Visible planets: {', '.join(visible_planets)}")
+    else:
+        logging.info("No planets are visible at this time")
     
     return plotted_planets 

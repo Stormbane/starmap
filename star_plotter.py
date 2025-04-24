@@ -8,11 +8,23 @@ import json
 import re
 import matplotlib.colors as mcolors
 from constellation_utils import get_constellation_full_name
+import time  # For performance measurement
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# magnitude is the brightness of the star. Brighter stars have lower magnitudes.
+# The brightest star is magnitude 0. The faintest star visible to the naked eye is magnitude 6.5.
 NAKED_EYE_MAG_LIMIT = 6.5 # Apparent magnitude limit for naked eye visibility
-LABEL_MAG_LIMIT = 1.5 # Show labels only for stars brighter than this magnitude
+LABEL_MAG_LIMIT = 2.5 # Show labels only for stars brighter than this magnitude
+MAX_STARS_TO_PLOT = 9000  # Limit the number of stars to plot for performance
+BATCH_SIZE = 500
+# Show magnitude in star labels
+SHOW_MAGNITUDE = False  # Set to False to hide magnitude in star labels
+
+
+# Cache for constellation names to avoid repeated lookups
+constellation_cache = {}
 
 def temperature_to_color(temp_k):
     """
@@ -191,6 +203,12 @@ def parse_ra_dec(ra_str, dec_str):
         # Return default values if parsing fails
         return ephem.hours("0:0:0"), ephem.degrees("0:0:0")
 
+def get_constellation_full_name_cached(abbr):
+    """Cached version of get_constellation_full_name to avoid repeated lookups"""
+    if abbr not in constellation_cache:
+        constellation_cache[abbr] = get_constellation_full_name(abbr)
+    return constellation_cache[abbr]
+
 def get_brightest_stars(observer, local_dt, local_tz, num_stars=None, mag_limit=NAKED_EYE_MAG_LIMIT):
     """
     Get stars brighter than mag_limit visible at the specified location and time.
@@ -213,15 +231,15 @@ def get_brightest_stars(observer, local_dt, local_tz, num_stars=None, mag_limit=
     list
         List of dictionaries containing star information, sorted by magnitude.
     """
+    start_time = time.time()
     
     # Calculate midnight time
-    midnight = local_dt.replace(hour=0, minute=0, second=0, microsecond=0)
-    midnight_utc = midnight.astimezone(utc)
+    time_utc = local_dt.astimezone(utc)
 
     # Set observer date and time
     obs = ephem.Observer()
     obs.lat, obs.lon, obs.elev = observer.lat, observer.lon, observer.elev
-    obs.date = midnight_utc.strftime('%Y/%m/%d %H:%M:%S')
+    obs.date = time_utc.strftime('%Y/%m/%d %H:%M:%S')
 
     logging.info(f"Observer location: lat={obs.lat}, lon={obs.lon}, elev={obs.elev}")
     logging.info(f"Observer date/time (UTC): {obs.date}")
@@ -239,89 +257,85 @@ def get_brightest_stars(observer, local_dt, local_tz, num_stars=None, mag_limit=
         logging.error("Error decoding JSON from bsc5-short.json.")
         return []
 
+    # Pre-filter stars by magnitude to reduce processing
+    filtered_data = []
+    for star in data:
+        mag_str = star.get("V")
+        if mag_str is not None:
+            try:
+                magnitude = float(mag_str)
+                if magnitude <= mag_limit:
+                    filtered_data.append(star)
+            except (ValueError, TypeError):
+                continue
+    
+    logging.info(f"Pre-filtered {len(filtered_data)} stars brighter than {mag_limit} out of {len(data)} total stars")
+    
+    # Create a star object once and reuse it
+    star_obj = ephem.FixedBody()
+    
     star_data = []
     processed_count = 0
     visible_count = 0
     below_horizon_count = 0
-    fainter_than_limit_count = 0
     error_count = 0
     unnamed_stars = 0
 
-    for i, star in enumerate(data):
-        processed_count += 1
-        name = star.get("N")
-        ra_str = star.get("RA")
-        dec_str = star.get("Dec")
-        mag_str = star.get("V") # Visual magnitude
-        temp_k = star.get("K") # Temperature in Kelvin
-        constellation_abbr = star.get("C", "Unknown") # Get constellation abbreviation from "C" field
-        constellation = get_constellation_full_name(constellation_abbr) # Convert to full name
+    # Process stars in batches for better performance
+    batch_size = BATCH_SIZE
+    for i in range(0, len(filtered_data), batch_size):
+        batch = filtered_data[i:i+batch_size]
+        for star in batch:
+            processed_count += 1
+            name = star.get("N")
+            ra_str = star.get("RA")
+            dec_str = star.get("Dec")
+            mag_str = star.get("V") # Visual magnitude
+            temp_k = star.get("K") # Temperature in Kelvin
+            constellation_abbr = star.get("C", "Unknown") # Get constellation abbreviation from "C" field
+            constellation = get_constellation_full_name_cached(constellation_abbr) # Convert to full name
 
-        if name is None:
-            # Generate a name for unnamed stars
-            name = f"Star_{i+1}"
-            unnamed_stars += 1
+            if name is None:
+                # Generate a name for unnamed stars
+                name = f"Star_{i+1}"
+                unnamed_stars += 1
 
-        if mag_str is None:
-            logging.debug(f"Star {name} missing magnitude (V). Skipping.")
-            error_count += 1
-            continue
+            try:
+                ra_ephem, dec_ephem = parse_ra_dec(ra_str, dec_str)
 
-        try:
-            magnitude = float(mag_str)
-        except (ValueError, TypeError):
-            logging.warning(f"Invalid magnitude for star {name}: '{mag_str}'. Skipping.")
-            error_count += 1
-            continue
+                # Reuse the star object instead of creating a new one
+                star_obj._ra = ra_ephem
+                star_obj._dec = dec_ephem
+                star_obj.name = name
+                star_obj.compute(obs) # Compute position for the observer's time/location
 
-        # --- Filter by magnitude early ---
-        if magnitude > mag_limit:
-            fainter_than_limit_count += 1
-            continue # Skip stars fainter than the limit
+                altitude = np.degrees(star_obj.alt)
+                
+                if altitude > 0: # Check if star is above the horizon
+                    visible_count += 1
+                    azimuth = np.degrees(star_obj.az)
+                    azimuth_centered = center_azimuth(azimuth)
 
-        try:
-            ra_ephem, dec_ephem = parse_ra_dec(ra_str, dec_str)
-
-            # Create a star using RA/Dec
-            body = ephem.FixedBody()
-            body._ra = ra_ephem
-            body._dec = dec_ephem
-            body.name = name
-            body.compute(obs) # Compute position for the observer's time/location
-
-            altitude = np.degrees(body.alt)
-            logging.debug(f"Star {name}: altitude={altitude:.2f}°, magnitude={magnitude}")
-
-            if altitude > 0: # Check if star is above the horizon
-                visible_count += 1
-                azimuth = np.degrees(body.az)
-                azimuth_centered = center_azimuth(azimuth)
-
-                star_data.append({
-                    "name": name,
-                    "magnitude": magnitude,
-                    "constellation": constellation,
-                    "altitude": altitude,
-                    "azimuth": azimuth_centered,
-                    "object": body, # Store the ephem object if needed later
-                    "temp_k": temp_k # Store the temperature for coloring
-                })
-                logging.debug(f"Visible: {name} (Mag: {magnitude:.2f}) at Alt: {altitude:.2f}, Az: {azimuth_centered:.2f}")
-            else:
-                below_horizon_count += 1
-                logging.debug(f"Below horizon: {name} (Alt: {altitude:.2f})")
-
-        except Exception as e:
-            logging.warning(f"Could not process star {name} (RA: {ra_str}, Dec: {dec_str}): {e}")
-            error_count += 1
-            continue
+                    star_data.append({
+                        "name": name,
+                        "magnitude": float(mag_str),
+                        "constellation": constellation,
+                        "altitude": altitude,
+                        "azimuth": azimuth_centered,
+                        "object": star_obj.copy(), # Create a copy of the star object
+                        "temp_k": temp_k # Store the temperature for coloring
+                    })
+            except Exception as e:
+                logging.warning(f"Could not process star {name} (RA: {ra_str}, Dec: {dec_str}): {e}")
+                error_count += 1
+                continue
 
     logging.info(f"--- Star Processing Summary ---")
     logging.info(f"Total stars from file: {len(data)}")
+    logging.info(f"Pre-filtered stars brighter than {mag_limit}: {len(filtered_data)}")
     logging.info(f"Processed: {processed_count}")
-    logging.info(f"Visible above horizon & brighter than {mag_limit}: {visible_count}")
+    logging.info(f"Visible above horizon: {visible_count}")
     logging.info(f"Below horizon: {below_horizon_count}")
-    logging.info(f"Fainter than limit ({mag_limit}): {fainter_than_limit_count}")
     logging.info(f"Unnamed stars: {unnamed_stars}")
     logging.info(f"Errors/Skipped: {error_count}")
     
@@ -336,6 +350,8 @@ def get_brightest_stars(observer, local_dt, local_tz, num_stars=None, mag_limit=
         result = star_data
         logging.info(f"Returning all {len(result)} visible stars brighter than {mag_limit}")
 
+    end_time = time.time()
+    logging.info(f"Star processing completed in {end_time - start_time:.2f} seconds")
     logging.info(f"Returning {len(result)} brightest stars")
     return result
 
@@ -359,8 +375,12 @@ def plot_brightest_stars(ax, observer, local_dt, local_tz):
     dict
         Dictionary of star objects that were plotted
     """
-    # Get the brightest stars
-    brightest_stars = get_brightest_stars(observer, local_dt, local_tz, mag_limit=NAKED_EYE_MAG_LIMIT)
+    start_time = time.time()
+    
+    # Get the brightest stars with a limit for performance
+    brightest_stars = get_brightest_stars(observer, local_dt, local_tz, 
+                                         num_stars=MAX_STARS_TO_PLOT, 
+                                         mag_limit=NAKED_EYE_MAG_LIMIT)
     
     logging.info(f"Plotting {len(brightest_stars)} stars")
     
@@ -370,18 +390,60 @@ def plot_brightest_stars(ax, observer, local_dt, local_tz):
         logging.warning("No stars found to plot.")
         return plotted_stars
 
+    # Batch plot stars for better performance
+    x_coords = []
+    y_coords = []
+    sizes = []
+    colors = []
+    alphas = []
+    markers = []
+    names = []
+    magnitudes = []
+    constellations = []
+    temp_ks = []
+    
     for i, star_info in enumerate(brightest_stars):
-        # Only show labels for the 10 brightest stars
-        show_label = i < 10
+        # Calculate size and alpha based on magnitude
+        magnitude = star_info["magnitude"]
+        clamped_mag = max(-2.0, min(magnitude, NAKED_EYE_MAG_LIMIT))
         
-        # Plot the star
-        mark_star(ax, star_info["azimuth"], star_info["altitude"], 
-                 star_info["name"], 
-                 star_info["constellation"], 
-                 star_info["magnitude"],
-                 show_label=show_label,
-                 temp_k=star_info.get("temp_k"))
+        # Size calculation
+        base_size = 1.0
+        scale_power = 2.0
+        size = base_size + (NAKED_EYE_MAG_LIMIT - clamped_mag)**scale_power * 10
+        max_marker_size = 150
+        size = min(size, max_marker_size)
+        size = max(size, base_size)
         
+        # Alpha calculation
+        min_alpha = 0.1
+        max_alpha = 1.0
+        alpha_range = max_alpha - min_alpha
+        alpha = min_alpha + alpha_range * ((NAKED_EYE_MAG_LIMIT - clamped_mag) / (NAKED_EYE_MAG_LIMIT - (-2.0)))
+        alpha = max(min_alpha, min(max_alpha, alpha))
+        
+        # Determine marker and color
+        if magnitude < LABEL_MAG_LIMIT:
+            marker = '*'
+        else:
+            marker = '.'
+            
+        temp_k = star_info.get("temp_k")
+        color = temperature_to_color(temp_k) if temp_k is not None else 'white'
+        
+        # Collect data for batch plotting
+        x_coords.append(star_info["azimuth"])
+        y_coords.append(star_info["altitude"])
+        sizes.append(size)
+        colors.append(color)
+        alphas.append(alpha)
+        markers.append(marker)
+        names.append(star_info["name"])
+        magnitudes.append(magnitude)
+        constellations.append(star_info["constellation"])
+        temp_ks.append(temp_k)
+        
+        # Store star info for return
         plotted_stars[star_info["name"]] = {
             "object": star_info["object"],
             "azimuth": star_info["azimuth"],
@@ -390,5 +452,36 @@ def plot_brightest_stars(ax, observer, local_dt, local_tz):
             "magnitude": star_info["magnitude"],
             "temp_k": star_info.get("temp_k")
         }
+    
+    # Batch plot stars by marker type for better performance
+    unique_markers = set(markers)
+    for marker in unique_markers:
+        # Find indices for this marker
+        indices = [i for i, m in enumerate(markers) if m == marker]
         
+        # Extract data for this marker
+        x = [x_coords[i] for i in indices]
+        y = [y_coords[i] for i in indices]
+        s = [sizes[i] for i in indices]
+        c = [colors[i] for i in indices]
+        a = [alphas[i] for i in indices]
+        
+        # Plot stars with this marker
+        ax.scatter(x, y, color=c, edgecolor='none', marker=marker, s=s, zorder=5, alpha=a)
+    
+    # Add labels for bright stars
+    for i, star_info in enumerate(brightest_stars):
+        if star_info["magnitude"] < LABEL_MAG_LIMIT and not star_info["name"].startswith("Star_"):
+            name = star_info["name"]
+            magnitude = star_info["magnitude"]
+            x = star_info["azimuth"]
+            y = star_info["altitude"]
+            color = temperature_to_color(star_info.get("temp_k")) if star_info.get("temp_k") is not None else 'white'
+            
+            label = f"{name} m={magnitude:.1f}" if SHOW_MAGNITUDE else name
+            ax.text(x, y + 1.5, label, color=color, fontsize=8, ha='center', va='bottom', zorder=6)
+            
+    end_time = time.time()
+    logging.info(f"Star plotting completed in {end_time - start_time:.2f} seconds")
+    
     return plotted_stars 

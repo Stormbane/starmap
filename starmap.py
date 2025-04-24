@@ -10,6 +10,12 @@ from planet_plotter import plot_planets
 from star_plotter import plot_brightest_stars
 # Import the sun and moon plotting module
 from sunmoon_plotter import plot_sun_and_moon
+# Import the constellation plotting module
+from constellation_plotter import plot_constellations
+# Import the info plotting module
+from info_plotter import plot_location_info
+# Import the moon phase plotting module
+from moonphase_plotter import plot_moon_phase_info
 from matplotlib.colors import to_rgba
 
 # Logging
@@ -67,6 +73,12 @@ def set_background_gradient(ax):
 # Call the function to set the background gradient
 set_background_gradient(ax)
 
+# Add location and time information to the top right corner
+plot_location_info(ax, observer, local_dt, local_tz)
+
+# Add moon phase information to the top left corner
+plot_moon_phase_info(ax, observer, local_dt, local_tz)
+
 # Plot sun and moon paths
 celestial_data = plot_sun_and_moon(ax, observer, local_dt, local_tz)
 
@@ -77,14 +89,16 @@ logging.info(f"Moon path points: {len(celestial_data['moon']['azimuth'])}")
 if len(celestial_data['moon']['altitude']) > 0:
     logging.info(f"Moon altitude range: min={min(celestial_data['moon']['altitude']):.2f}, max={max(celestial_data['moon']['altitude']):.2f}")
 
-# Plot planets (can be commented out to disable)
-# Uncomment to include specific planets only
-# plot_planets(ax, observer, local_dt, local_tz, include_planets=['Venus', 'Mars'])
-# Or include all planets
-# plot_planets(ax, observer, local_dt, local_tz)
-
 # Plot brightest stars at midnight (can be commented out to disable)
-plot_brightest_stars(ax, observer, local_dt, local_tz)
+
+local_dt = local_tz.localize(datetime(2025, 4, 24, 20, 0, 0))
+stars_data = plot_brightest_stars(ax, observer, local_dt, local_tz)
+
+# Plot constellation lines
+plot_constellations(ax, stars_data, observer, local_dt)
+
+# Plot planets (can be commented out to disable)
+plot_planets(ax, observer, local_dt, local_tz)
 
 # Cardinal directions with North at 0 degrees
 cardinals_centered = {
@@ -170,7 +184,7 @@ ax.grid(True, which='minor', linestyle=':', alpha=0.1, color='white')
 
 ax.axhline(0, color='white', linewidth=1)
 ax.axvline(0, color='white', linestyle=':', linewidth=0.8)  # North marker
-ax.legend(facecolor='#000733', edgecolor='white', fontsize=12)
+#ax.legend(facecolor='#000733', edgecolor='white', fontsize=12)
 
 plt.tight_layout()
 print("Plot generated successfully!")
