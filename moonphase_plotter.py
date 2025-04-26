@@ -143,24 +143,28 @@ def plot_moon_phase_info(ax, observer, local_dt, local_tz):
     
     # Create the moon phase info text with multiple lines
     moon_info = (f"$\\bf{{Phase:}}$ {name}\n"
-                f"$\\bf{{Tithi:}}$ {lunar_day:.1f}\n"
+                f"$\\bf{{Lunar Day:}}$ {lunar_day:.1f}\n"
                 f"$\\bf{{Bengali:}}$ {bengali_month} {bengali_date}\n"
                 f"{next_event}: {next_moon_str} ({days_until} days)")
     
     # Load the appropriate moon phase image
     moonphase_folder = "C:\\sky\\moonphase"
     moon_day = int(lunar_day)
+
+    logging.info(f"Moon day: {lunar_day}")
+    logging.info(f"moon_image_path: {f"moon_day_{moon_day:02d}.png"}")
+
     moon_image_path = os.path.join(moonphase_folder, f"moon_day_{moon_day:02d}.png")
     
+    # Position: left, bottom, width, height (in axes coordinates)
+    padding = 0  # 2% padding from top and left
+    size = 0.03     # 15% of figure size
     # Check if the image exists
     if os.path.exists(moon_image_path):
         # Load the image
         moon_img = mpimg.imread(moon_image_path)
         logging.info(f"Moon image path: {moon_image_path}")
         # Create an inset axes for the moon image
-        # Position: left, bottom, width, height (in axes coordinates)
-        padding = 0  # 2% padding from top and left
-        size = 0.03     # 15% of figure size
         
         moon_ax = ax.inset_axes([padding, 1 - padding - size - 0.017 , size, size])  
         moon_ax.imshow(moon_img)

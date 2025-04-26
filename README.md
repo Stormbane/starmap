@@ -1,103 +1,105 @@
-# Star Map Generator
+# Starmap 4K Wallpaper
 
-A Python application that generates interactive star maps showing the positions of stars, planets, the sun, and the moon in the night sky for a specific location and time.
+A Python tool that generates 4K (3840x2160) star map wallpapers showing the night sky from any location at any date and time.
 
-## Features
+## Purpose
 
-- **Star Visualization**: Displays stars with realistic brightness, size, and color based on their temperature
-- **Planet Tracking**: Shows the positions and paths of visible planets
-- **Sun and Moon Paths**: Visualizes the sun and moon's paths across the sky
-- **Constellation Information**: Labels stars with their constellation names
-- **Customizable View**: Adjust parameters like magnitude limits and number of stars to display
-- **Location and Time Specific**: Generate maps for any location on Earth at any date and time
-
-## Requirements
-
-- Python 3.6+
-- Required Python packages:
-  - ephem
-  - numpy
-  - matplotlib
-  - pytz
+This tool creates high-resolution star map wallpapers (3840x2160) that accurately display:
+- Stars with proper brightness and temperature-based colors
+- Planets with their current positions
+- Constellation lines and labels
+- Celestial reference lines (equator, ecliptic)
+- Moon phase information
+- Location and time details
 
 ## Installation
 
-1. Clone this repository:
-   ```
-   git clone https://github.com/yourusername/star-map-generator.git
-   cd star-map-generator
-   ```
-
-2. Install the required packages:
-   ```
-   pip install ephem numpy matplotlib pytz
-   ```
-
-3. Ensure you have the star catalog file (`bsc5-short.json`) in the project directory.
+```bash
+pip install -r requirements.txt
+```
 
 ## Usage
 
-### Basic Usage
+Generate a star map wallpaper with default settings (Brisbane, April 26, 2025, 22:00):
 
-Run the main script to generate a star map:
-
-```
+```bash
 python starmap.py
 ```
 
-This will generate a star map for the default location (Brisbane, Australia) and date (April 24, 2025).
+### Command-line Options
 
-### Customizing the Map
-
-You can modify the following parameters in `starmap.py`:
-
-- **Observer Location**: Change the latitude, longitude, and elevation
-- **Date and Time**: Set a different date and time for the star map
-- **Timezone**: Change the timezone to match your location
-
-Example:
-```python
-# Observer location: New York
-observer = ephem.Observer()
-observer.lat = "40.7128"
-observer.lon = "-74.0060"
-observer.elev = 10
-
-# Local time and UTC conversion
-local_tz = timezone("America/New_York")
-local_dt = local_tz.localize(datetime(2023, 8, 15, 0, 0, 0))
+```bash
+python starmap.py --date YYYY-MM-DD --time HH:MM:SS --lat LATITUDE --lon LONGITUDE --timezone TIMEZONE --output FILENAME --setAsWallpaper
 ```
 
-### Adjusting Star Display
+#### Options:
 
-In `star_plotter.py`, you can modify:
+- `--date`: Date in YYYY-MM-DD format (default: 2025-04-26)
+- `--time`: Time in HH:MM:SS format (default: 22:00:00)
+- `--lat`: Latitude in decimal degrees (default: -27.47 for Brisbane)
+- `--lon`: Longitude in decimal degrees (default: 153.02 for Brisbane)
+- `--elev`: Elevation in meters (default: 0)
+- `--timezone`: Timezone (default: Australia/Brisbane)
+- `--output`: Output filename (default: starmap.png)
+- `--setAsWallpaper`: Set the generated image as desktop wallpaper and suppress plot display
 
-- `NAKED_EYE_MAG_LIMIT`: The magnitude limit for stars to be displayed (default: 6.5)
-- `LABEL_MAG_LIMIT`: The magnitude limit for stars to have labels (default: 1.5)
+### Examples
 
-## Project Structure
+New York City, May 15, 2025, 23:30:
+```bash
+python starmap.py --date 2025-05-15 --time 23:30:00 --lat 40.7128 --lon -74.0060 --timezone America/New_York
+```
 
-- `starmap.py`: Main script that generates the star map
-- `star_plotter.py`: Functions for plotting stars
-- `planet_plotter.py`: Functions for plotting planets
-- `sunmoon_plotter.py`: Functions for plotting the sun and moon
-- `constellation_utils.py`: Utilities for constellation name conversion
-- `bsc5-short.json`: Star catalog data
+Tokyo, June 1, 2025, 20:00:
+```bash
+python starmap.py --date 2025-06-01 --time 20:00:00 --lat 35.6762 --lon 139.6503 --timezone Asia/Tokyo
+```
 
-## How It Works
+Set as wallpaper:
+```bash
+python starmap.py --setAsWallpaper
+```
 
-1. The application loads star data from the `bsc5-short.json` catalog
-2. It calculates the positions of stars, planets, the sun, and the moon for the specified location and time
-3. Stars are filtered based on magnitude and visibility (above horizon)
-4. The map is generated using matplotlib, with stars colored based on their temperature
-5. The brightest stars are labeled with their names and magnitudes
+## Creating a Standalone Executable
 
-## License
+### Windows
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+1. Install PyInstaller:
+```bash
+pip install pyinstaller
+```
 
-## Acknowledgments
+2. Run PyInstaller using the Python module syntax:
+```bash
+python -m PyInstaller --onefile --windowed starmap.py
+```
 
-- Star data from the Bright Star Catalog (BSC5)
-- Astronomical calculations using the ephem library
-- Constellation information based on IAU standards 
+3. The executable will be in the `dist` directory.
+
+### Linux/Mac
+
+```bash
+pip install pyinstaller
+pyinstaller --onefile --windowed starmap.py
+```
+
+## Files
+
+- `starmap.py`: Main script
+- `star_plotter.py`: Star plotting functions
+- `planet_plotter.py`: Planet plotting functions
+- `sunmoon_plotter.py`: Sun and moon path plotting
+- `constellation_plotter.py`: Constellation line plotting
+- `info_plotter.py`: Location information display
+- `moonphase_plotter.py`: Moon phase display
+- `line_plotter.py`: Celestial reference lines
+- `set_wallpaper.py`: Desktop wallpaper setting functionality
+- `moonphase/`: Moon phase images
+
+## Dependencies
+
+- ephem: Astronomical calculations
+- numpy: Numerical computations
+- matplotlib: Plotting
+- pytz: Timezone handling
+- pillow: Image processing 

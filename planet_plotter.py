@@ -92,7 +92,7 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
         'Uranus': {'color': '#5B8FB9', 'symbol': '⛢', 'text_color': '#021547'},  # Light Blue
         'Neptune': {'color': '#3E66F9', 'symbol': '♆', 'text_color': '#021547'},  # Deep Blue
         'Pluto': {'color': '#8B4513', 'symbol': '♇', 'text_color': '#021547'},    # Brown
-        'Moon': {'color': '#FFFFFF', 'symbol': '☽', 'text_color': '#CCCCCC'}      # White
+        'Moon': {'color': '#CCCCCC', 'symbol': '☽', 'text_color': '#7F7F7F'}      # White
     }
     
     # Create planet objects

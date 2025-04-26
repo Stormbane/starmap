@@ -211,7 +211,7 @@ def plot_moon_path(ax, observer, local_dt, local_tz):
         
         # Find the point of maximum altitude
         max_alt_idx = np.argmax(moon_alt)
-        mark_point(ax, moon_az_centered[max_alt_idx], moon_alt[max_alt_idx], f"High Moon {moon_alt[max_alt_idx]:.0f}°", 'silver', moon_times[max_alt_idx], local_tz, y_offset=0)
+        mark_point(ax, moon_az_centered[max_alt_idx], moon_alt[max_alt_idx], f"High Moon {moon_alt[max_alt_idx]:.0f}°", 'silver', moon_times[max_alt_idx], local_tz, y_offset=-1)
     
     return {
         'azimuth': moon_az_centered,
