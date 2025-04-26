@@ -7,20 +7,44 @@ import logging
 import json
 import re
 import matplotlib.colors as mcolors
-from constellation_utils import get_constellation_full_name
+from utils.constellation_utils import get_constellation_full_name
 import time  # For performance measurement
+import yaml
+from pathlib import Path
+from utils.resource_utils import resource_path
 
 # --- Configuration ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+def load_config():
+    """
+    Load configuration from config.yaml file.
+    
+    Returns:
+    --------
+    dict
+        Configuration dictionary
+    """
+    try:
+        config_path = resource_path('config.yaml')
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        return config
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        return {}
+
+# Load configuration
+STAR_CONFIG = load_config()
+
 # magnitude is the brightness of the star. Brighter stars have lower magnitudes.
 # The brightest star is magnitude 0. The faintest star visible to the naked eye is magnitude 6.5.
-NAKED_EYE_MAG_LIMIT = 6.5 # Apparent magnitude limit for naked eye visibility
-LABEL_MAG_LIMIT = 2.5 # Show labels only for stars brighter than this magnitude
-MAX_STARS_TO_PLOT = 9000  # Limit the number of stars to plot for performance
-BATCH_SIZE = 500
+NAKED_EYE_MAG_LIMIT = STAR_CONFIG["stars"]["naked_eye_mag_limit"]  # Apparent magnitude limit for naked eye visibility
+LABEL_MAG_LIMIT = STAR_CONFIG["stars"]["label_mag_limit"]  # Show labels only for stars brighter than this magnitude
+MAX_STARS_TO_PLOT = STAR_CONFIG["stars"]["max_stars_to_plot"]  # Limit the number of stars to plot for performance
+BATCH_SIZE = STAR_CONFIG["stars"]["batch_size"]
 # Show magnitude in star labels
-SHOW_MAGNITUDE = False  # Set to False to hide magnitude in star labels
+SHOW_MAGNITUDE = STAR_CONFIG["stars"]["show_magnitude"]  # Set to False to hide magnitude in star labels
 
 
 # Cache for constellation names to avoid repeated lookups
@@ -245,16 +269,17 @@ def get_brightest_stars(observer, local_dt, local_tz, num_stars=None, mag_limit=
     logging.info(f"Observer date/time (UTC): {obs.date}")
 
     try:
-        # Ensure the path to your JSON file is correct
-        with open('bsc5-short.json', 'r', encoding='utf-8') as file:
+        # Ensure the path to your JSON file is correct using resource_path
+        json_path = resource_path('data/bsc5-short.json')
+        with open(json_path, 'r', encoding='utf-8') as file:
             data = json.load(file)
-        logging.info(f"Loaded {len(data)} stars from bsc5-short.json")
+        logging.info(f"Loaded {len(data)} stars from {json_path}")
     except FileNotFoundError:
-        logging.error("bsc5-short.json file not found. Please ensure the file exists.")
+        logging.error(f"{json_path} file not found. Please ensure the file exists.")
         # Return empty list or raise error if file is crucial
         return []
     except json.JSONDecodeError:
-        logging.error("Error decoding JSON from bsc5-short.json.")
+        logging.error(f"Error decoding JSON from {json_path}.")
         return []
 
     # Pre-filter stars by magnitude to reduce processing

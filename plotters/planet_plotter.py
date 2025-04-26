@@ -5,6 +5,30 @@ from datetime import datetime, timedelta
 from pytz import timezone, utc
 import matplotlib.colors as mcolors
 import logging
+import yaml
+from pathlib import Path
+from utils.resource_utils import resource_path
+
+def load_config():
+    """
+    Load configuration from config.yaml file.
+    
+    Returns:
+    --------
+    dict
+        Configuration dictionary
+    """
+    try:
+        config_path = resource_path('config.yaml')
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        return config
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        return {}
+
+# Load configuration
+CONFIG = load_config()
 
 def get_planet_position(planet, observer, local_dt):
     """
@@ -82,18 +106,8 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
     dict
         Dictionary of planet objects that were plotted
     """
-    # Define planet colors and symbols
-    planet_info = {
-        'Mercury': {'color': '#1A873A', 'symbol': '☿', 'text_color': '#105223'},  # Green
-        'Venus': {'color': '#FFFFE3', 'symbol': '♀', 'text_color': '#C4C4AE'},    # White
-        'Mars': {'color': '#700101', 'symbol': '♂', 'text_color': '#2B0007'},     # Red
-        'Jupiter': {'color': '#FFDD40', 'symbol': '♃', 'text_color': '#A8922A'},  # Yellow
-        'Saturn': {'color': '#042682', 'symbol': '♄', 'text_color': '#021547'},   # Dark Blue
-        'Uranus': {'color': '#5B8FB9', 'symbol': '⛢', 'text_color': '#021547'},  # Light Blue
-        'Neptune': {'color': '#3E66F9', 'symbol': '♆', 'text_color': '#021547'},  # Deep Blue
-        'Pluto': {'color': '#8B4513', 'symbol': '♇', 'text_color': '#021547'},    # Brown
-        'Moon': {'color': '#CCCCCC', 'symbol': '☽', 'text_color': '#7F7F7F'}      # White
-    }
+    # Get planet information from config
+    planet_info = CONFIG["planets"]
     
     # Create planet objects
     planets = {
@@ -139,8 +153,7 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
                 mark_planet(ax, az_centered, altitude, symbol, color, text_color, local_dt, local_tz)
                 
                 plotted_planets[planet_name] = planet
-            else:
-                logging.info(f"{planet_name} is not visible at {local_dt}")
+            
     
     # Log summary of visible planets
     if visible_planets:

@@ -3,6 +3,7 @@ import sys
 import ctypes
 import logging
 from pathlib import Path
+from utils.resource_utils import resource_path
 
 # Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,8 +20,8 @@ def set_wallpaper(image_path):
         bool: True if successful, False otherwise
     """
     try:
-        # Convert to absolute path
-        abs_path = os.path.abspath(image_path)
+        # Convert to absolute path using resource_path
+        abs_path = resource_path(image_path)
         
         # Check if file exists
         if not os.path.exists(abs_path):

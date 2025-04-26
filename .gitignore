@@ -34,7 +34,6 @@ ENV/
 .DS_Store
 
 # Project specific
-*.png
 *.jpg
 *.jpeg
 *.gif
@@ -68,3 +67,4 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg 
+wallpaper_scheduler/

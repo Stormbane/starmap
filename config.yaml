@@ -1,0 +1,65 @@
+max_constellations_to_plot: 20
+planets:
+  Jupiter:
+    color: '#FFDD40'
+    symbol: "\u2643"
+    text_color: '#A8922A'
+  Mars:
+    color: '#700101'
+    symbol: "\u2642"
+    text_color: '#2B0007'
+  Mercury:
+    color: '#1A873A'
+    symbol: "\u263F"
+    text_color: '#105223'
+  Moon:
+    color: '#CCCCCC'
+    symbol: "\u263D"
+    text_color: '#7F7F7F'
+  Neptune:
+    color: '#3E66F9'
+    symbol: "\u2646"
+    text_color: '#021547'
+  Pluto:
+    color: '#8B4513'
+    symbol: "\u2647"
+    text_color: '#021547'
+  Saturn:
+    color: '#042682'
+    symbol: "\u2644"
+    text_color: '#021547'
+  Uranus:
+    color: '#5B8FB9'
+    symbol: "\u26E2"
+    text_color: '#021547'
+  Venus:
+    color: '#FFFFE3'
+    symbol: "\u2640"
+    text_color: '#C4C4AE'
+show_only_constellations:
+- Ari
+- Tau
+- Gem
+- Cnc
+- Leo
+- Vir
+- Lib
+- Sco
+- Sgr
+- Cap
+- Aqr
+- Psc
+- Cen
+- Cru
+- Car
+- Boo
+- Crv
+- Ori
+- CMa
+- Lup
+stars:
+  batch_size: 500
+  label_mag_limit: 2.5
+  max_stars_to_plot: 9000
+  naked_eye_mag_limit: 6.5
+  show_magnitude: false

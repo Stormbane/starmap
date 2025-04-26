@@ -11,6 +11,7 @@ from datetime import timezone as dt_timezone
 import os
 from PIL import Image
 import matplotlib.image as mpimg
+from utils.resource_utils import resource_path
 
 def get_moon_phase(local_dt):
     """
@@ -148,13 +149,13 @@ def plot_moon_phase_info(ax, observer, local_dt, local_tz):
                 f"{next_event}: {next_moon_str} ({days_until} days)")
     
     # Load the appropriate moon phase image
-    moonphase_folder = "C:\\sky\\moonphase"
+    moonphase_folder = "images/moonphase"
     moon_day = int(lunar_day)
 
     logging.info(f"Moon day: {lunar_day}")
     logging.info(f"moon_image_path: {f"moon_day_{moon_day:02d}.png"}")
 
-    moon_image_path = os.path.join(moonphase_folder, f"moon_day_{moon_day:02d}.png")
+    moon_image_path = resource_path(os.path.join(moonphase_folder, f"moon_day_{moon_day:02d}.png"))
     
     # Position: left, bottom, width, height (in axes coordinates)
     padding = 0  # 2% padding from top and left

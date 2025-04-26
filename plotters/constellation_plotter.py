@@ -3,41 +3,36 @@ import numpy as np
 import matplotlib.pyplot as plt
 import logging
 import ephem
+import yaml
 from pathlib import Path
 from datetime import datetime
-from constellation_utils import get_constellation_full_name
+from utils.constellation_utils import get_constellation_full_name
 from pytz import utc
+from utils.resource_utils import resource_path
 
 # --- Configuration ---
-MAX_CONSTELLATIONS_TO_PLOT = 20  # Limit the number of constellations to plot for performance
-SHOW_ONLY_CONSTELLATIONS = [
-    # Zodiac constellations
-    "Ari",  # Aries
-    "Tau",  # Taurus
-    "Gem",  # Gemini
-    "Cnc",  # Cancer
-    "Leo",  # Leo
-    "Vir",  # Virgo
-    "Lib",  # Libra
-    "Sco",  # Scorpius
-    "Sgr",  # Sagittarius
-    "Cap",  # Capricornus
-    "Aqr",  # Aquarius
-    "Psc",  # Pisces
+def load_config():
+    """
+    Load configuration from config.yaml file.
     
-    # Additional constellations
-    "Cen",  # Centaurus
-    "Cru",  # Crux
-    "Car",  # Carina
-    "Boo",  # Bootes
-    "Crv",  # Corvus
-    "Ori",  # Orion
-    "CMa",  # Canis Major (contains Sirius)
-    "Lup"   # Lupus
-]  # Set to None to show all constellations
-#SHOW_ONLY_CONSTELLATIONS = None  # Set to a list of constellation IDs to show only specific constellations
-                                 # Example: ["UMa", "Ori", "Cas"] to show only Ursa Major, Orion, and Cassiopeia
-                                 # Set to None to show all constellations
+    Returns:
+    --------
+    dict
+        Configuration dictionary
+    """
+    try:
+        config_path = resource_path('config.yaml')
+        with open(config_path, 'r') as f:
+            config = yaml.safe_load(f)
+        return config
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        return {}
+
+# Load configuration
+CONFIG = load_config()
+MAX_CONSTELLATIONS_TO_PLOT = CONFIG["max_constellations_to_plot"]
+SHOW_ONLY_CONSTELLATIONS = CONFIG["show_only_constellations"]
 
 def load_constellation_data():
     """
@@ -49,7 +44,7 @@ def load_constellation_data():
         Dictionary containing constellation line data
     """
     try:
-        json_path = Path('constellations.lines.json')
+        json_path = resource_path('data/constellations.lines.json')
         with open(json_path, 'r') as f:
             data = json.load(f)
         return data

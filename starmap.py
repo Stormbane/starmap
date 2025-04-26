@@ -6,21 +6,21 @@ from pytz import timezone, utc
 from datetime import datetime, timedelta
 import argparse
 # Import the planet plotting module
-from planet_plotter import plot_planets
+from plotters.planet_plotter import plot_planets
 # Import the star plotting module
-from star_plotter import plot_brightest_stars
+from plotters.star_plotter import plot_brightest_stars
 # Import the sun and moon plotting module
-from sunmoon_plotter import plot_sun_and_moon
+from plotters.sunmoon_plotter import plot_sun_and_moon
 # Import the constellation plotting module
-from constellation_plotter import plot_constellations
+from plotters.constellation_plotter import plot_constellations
 # Import the info plotting module
-from info_plotter import plot_location_info
+from plotters.info_plotter import plot_location_info
 # Import the moon phase plotting module
-from moonphase_plotter import plot_moon_phase_info
+from plotters.moonphase_plotter import plot_moon_phase_info
 # Import the celestial lines plotting module
-from line_plotter import plot_celestial_lines
+from plotters.line_plotter import plot_celestial_lines
 # Import the wallpaper setting module
-from set_wallpaper import set_wallpaper
+from utils.set_wallpaper import set_wallpaper
 from matplotlib.colors import to_rgba
 
 # Logging
@@ -217,7 +217,16 @@ def main():
         logging.error("Using default date/time: 2025-04-26 22:00:00")
         local_dt = local_tz.localize(datetime(2025, 4, 26, 22, 0, 0))
     
+    logging.info(f"Local date and time: {local_dt}")
     local_dt_midnight = local_tz.localize(datetime(year, month, day, 0, 0, 0))
+    logging.info(f"Local date and time midnight: {local_dt_midnight}")
+    
+    # Convert local time to UTC for ephem calculations
+    utc_dt = local_dt.astimezone(utc)
+    today = ephem.Date(utc_dt.replace(tzinfo=None))
+    
+    # Set observer date - this is the critical fix
+    observer.date = today
     
     # Plot setup
     fig, ax = plt.subplots(figsize=(3840/100, 2160/100), dpi=100)
