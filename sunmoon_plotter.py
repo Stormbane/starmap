@@ -61,7 +61,7 @@ def get_body_path_with_riseset(body, observer, rise, set):
 
     return np.array(az), np.array(alt), tlist
 
-def mark_point(ax, x, y, label, color, time=None, local_tz=None, y_offset=3):
+def mark_point(ax, x, y, label, color, time=None, local_tz=None, y_offset=1):
     """Mark a point on the plot with a label and optional time."""
     logging.debug(f"mark_point called with label='{label}', time={time}, local_tz={local_tz}")
     
@@ -82,8 +82,8 @@ def mark_point(ax, x, y, label, color, time=None, local_tz=None, y_offset=3):
     else:
         logging.debug(f"No time or timezone provided, using original label: {label}")
     
-    ax.scatter([x], [y], color=color, edgecolor='black', s=100, zorder=5)
-    ax.text(x, y + y_offset, label, color=color, fontsize=12, fontweight='bold', ha='center')
+    ax.scatter([x], [y], color=color, edgecolor='black', s=50, zorder=5)
+    ax.text(x, y + y_offset, label, color=color, fontsize=8, ha='center')
 
 def plot_sun_path(ax, observer, local_dt, local_tz):
     """
@@ -127,7 +127,7 @@ def plot_sun_path(ax, observer, local_dt, local_tz):
     sun_az_centered = center_azimuth(sun_az)
     
     # Plot sun path
-    ax.plot(sun_az_centered, sun_alt, color='gold', linewidth=2)
+    ax.plot(sun_az_centered, sun_alt, color='gold', linewidth=0.5)
     
     # Mark key Sun moments
     if len(sun_az_centered) > 0:
@@ -151,8 +151,8 @@ def plot_sun_path(ax, observer, local_dt, local_tz):
         rising_mid_idx = np.argmin(rising_diffs)
         setting_mid_idx = max_alt_idx + np.argmin(setting_diffs)
         
-        mark_point(ax, sun_az_centered[rising_mid_idx], sun_alt[rising_mid_idx], "↖️", 'gold', sun_times[rising_mid_idx], local_tz)
-        mark_point(ax, sun_az_centered[setting_mid_idx], sun_alt[setting_mid_idx], "↙️", 'gold', sun_times[setting_mid_idx], local_tz)
+        #mark_point(ax, sun_az_centered[setting_mid_idx], sun_alt[setting_mid_idx], "↙️", 'gold', sun_times[setting_mid_idx], local_tz)
+        #mark_point(ax, sun_az_centered[rising_mid_idx], sun_alt[rising_mid_idx], "↖️", 'gold', sun_times[rising_mid_idx], local_tz)
     
     return {
         'azimuth': sun_az_centered,
@@ -202,7 +202,7 @@ def plot_moon_path(ax, observer, local_dt, local_tz):
     moon_az_centered = center_azimuth(moon_az)
     
     # Plot moon path
-    ax.plot(moon_az_centered, moon_alt, color='silver', linewidth=1.5)
+    ax.plot(moon_az_centered, moon_alt, color='silver', linewidth=0.5)
     
     # Mark key Moon moments
     if len(moon_az_centered) > 0:
@@ -211,7 +211,7 @@ def plot_moon_path(ax, observer, local_dt, local_tz):
         
         # Find the point of maximum altitude
         max_alt_idx = np.argmax(moon_alt)
-        mark_point(ax, moon_az_centered[max_alt_idx], moon_alt[max_alt_idx], f"High Moon {moon_alt[max_alt_idx]:.0f}°", 'silver', moon_times[max_alt_idx], local_tz, y_offset=2)
+        mark_point(ax, moon_az_centered[max_alt_idx], moon_alt[max_alt_idx], f"High Moon {moon_alt[max_alt_idx]:.0f}°", 'silver', moon_times[max_alt_idx], local_tz, y_offset=0)
     
     return {
         'azimuth': moon_az_centered,

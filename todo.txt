@@ -1,6 +1,39 @@
 test next moon rise yesterday.
-improve performance by plotting vector scatter
-add constellations
 add info about moon phase
-add info about date and time of night sky
-add planet positions 
+show solsctice/equinox info
+major astrological events
+
+Generated:
+add compass points on horizon line
+add twilight times (civil, nautical, astronomical)
+add meteor shower info when active
+add ISS pass predictions
+add iridium flare predictions
+add aurora forecast/probability
+add light pollution overlay
+add weather forecast overlay (clouds)
+add milky way visibility indicator
+add planet visibility ratings
+add deep sky object suggestions based on conditions
+add moon illumination percentage
+add lunar eclipse predictions
+add solar eclipse predictions
+add conjunction events between planets
+add occultation events
+add satellite tracking for bright objects
+add zenith marker
+add meridian line
+add celestial equator line
+add ecliptic line
+add galactic plane line
+add horizon panorama option
+add star names in multiple languages
+add constellation boundaries
+add constellation art overlays
+add time-lapse animation option
+add custom location saving
+add sharing capabilities
+add printable star chart generation
+add dark mode toggle for UI elements
+add magnitude scale legend
+add angular distance measuring tool

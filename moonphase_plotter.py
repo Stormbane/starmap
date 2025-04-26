@@ -8,8 +8,9 @@ from matplotlib.patches import Circle, Arc, Path, PathPatch
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 from datetime import timezone as dt_timezone
-
-
+import os
+from PIL import Image
+import matplotlib.image as mpimg
 
 def get_moon_phase(local_dt):
     """
@@ -67,234 +68,170 @@ def get_moon_phase(local_dt):
 
     return illumination, phase_name, lunar_day, next_new_dt, next_full_dt
 
-def draw_moon_phase(ax, phase, x, y, size=0.05):
-    """
-    Draw a moon phase diagram.
-    
-    Parameters:
-    -----------
-    ax : matplotlib.axes.Axes
-        The axes to plot on
-    phase : float
-        Moon phase (0.0 to 1.0)
-    x : float
-        x-coordinate (in axes coordinates)
-    y : float
-        y-coordinate (in axes coordinates)
-    size : float, optional
-        Size of the moon diagram
-    """
-    # Create a circle for the moon
-    moon = Circle((x, y), size, color='white', transform=ax.transAxes)
-    ax.add_patch(moon)
-    
-    # Create a circle for the shadow
-    shadow = Circle((x, y), size, color='black', transform=ax.transAxes)
-    
-    # Calculate the shadow position based on the phase
-    if phase < 0.5:  # Waxing moon (shadow on left)
-        # Calculate the x-offset for the shadow
-        x_offset = size * (1 - 2 * phase)
-        shadow.center = (x + x_offset, y)
-    else:  # Waning moon (shadow on right)
-        # Calculate the x-offset for the shadow
-        x_offset = size * (2 * phase - 1)
-        shadow.center = (x - x_offset, y)
-    
-    ax.add_patch(shadow)
-
-def draw_detailed_moon_phase(ax, phase, x, y, size=0.05):
-    """
-    Draw a more detailed moon phase diagram with craters and shading.
-    
-    Parameters:
-    -----------
-    ax : matplotlib.axes.Axes
-        The axes to plot on
-    phase : float
-        Moon phase (0.0 to 1.0)
-    x : float
-        x-coordinate (in axes coordinates)
-    y : float
-        y-coordinate (in axes coordinates)
-    size : float, optional
-        Size of the moon diagram
-    """
-    # Create the base moon circle
-    moon = Circle((x, y), size, color='white', transform=ax.transAxes)
-    ax.add_patch(moon)
-    
-    # Determine if waxing or waning
-    is_waxing = phase < 0.5
-    
-    # Calculate the terminator position (the line between light and dark)
-    terminator_x = x + (size * (1 - 2 * phase) if is_waxing else -size * (2 * phase - 1))
-    
-    # Create the shadow
-    if is_waxing:
-        # For waxing moon, shadow is on the left
-        shadow_path = Path([
-            (x - size, y - size),  # Bottom left
-            (x - size, y + size),  # Top left
-            (terminator_x, y + size),  # Top right
-            (terminator_x, y - size),  # Bottom right
-            (x - size, y - size),  # Back to start
-        ])
-    else:
-        # For waning moon, shadow is on the right
-        shadow_path = Path([
-            (x + size, y - size),  # Bottom right
-            (x + size, y + size),  # Top right
-            (terminator_x, y + size),  # Top left
-            (terminator_x, y - size),  # Bottom left
-            (x + size, y - size),  # Back to start
-        ])
-    
-    shadow = PathPatch(shadow_path, facecolor='black', transform=ax.transAxes)
-    ax.add_patch(shadow)
-    
-    # Add some craters (simplified representation)
-    crater_radius = size * 0.1
-    crater_positions = [
-        (x + size * 0.3, y + size * 0.2),
-        (x - size * 0.2, y + size * 0.3),
-        (x + size * 0.1, y - size * 0.3),
-        (x - size * 0.3, y - size * 0.1),
-    ]
-    
-    for cx, cy in crater_positions:
-        # Only draw craters on the illuminated side
-        if (is_waxing and cx > terminator_x) or (not is_waxing and cx < terminator_x):
-            crater = Circle((cx, cy), crater_radius, 
-                           facecolor='none', 
-                           edgecolor='gray', 
-                           alpha=0.5,
-                           transform=ax.transAxes)
-            ax.add_patch(crater)
-            
-            # Add a highlight to make it look more 3D
-            highlight = Circle((cx - crater_radius * 0.3, cy + crater_radius * 0.3), 
-                              crater_radius * 0.3, 
-                              facecolor='white', 
-                              alpha=0.3,
-                              transform=ax.transAxes)
-            ax.add_patch(highlight)
-
-def draw_celestial_moon(ax, phase, center_az, center_alt, moon_diameter_deg=0.5, resolution=300):
-    """
-    Draw a realistic moon in data (azimuth/altitude) coordinates.
-    
-    Parameters:
-    -----------
-    ax : matplotlib.axes.Axes
-        The axes to draw on
-    phase : float
-        Moon phase (0.0 = new, 0.5 = full)
-    center_az : float
-        Azimuth in degrees (-180 to 180)
-    center_alt : float
-        Altitude in degrees (0 to 90)
-    moon_diameter_deg : float
-        Moon's apparent angular diameter
-    resolution : int
-        Grid resolution for the moon image
-    """
-    # Create moon texture grid
-    grid = np.linspace(-1, 1, resolution)
-    X, Y = np.meshgrid(grid, grid)
-    R = np.sqrt(X**2 + Y**2)
-    mask = R <= 1
-
-    # Phase-based illumination
-    illum = np.clip(np.cos((X + (2 * phase - 1)) * np.pi), 0, 1)
-
-    # Earthshine glow for crescent
-    earthshine = 0
-    if 0.0 < phase < 0.1 or 0.9 < phase < 1.0:
-        earthshine = 0.1 * (1 - illum) * mask
-
-    # Crater effect
-    np.random.seed(42)
-    crater_noise = 0.85 + 0.15 * np.random.normal(0, 1, size=illum.shape)
-    crater_noise = np.clip(crater_noise, 0.6, 1.1)
-    final_img = (illum + earthshine) * crater_noise * mask
-
-    # RGBA moon image
-    moon_image = np.zeros((*final_img.shape, 4))
-    moon_image[..., :3] = final_img[..., np.newaxis]
-    moon_image[..., 3] = mask
-
-    # Convert angular diameter to extent
-    radius = moon_diameter_deg / 2
-    extent = [
-        center_az - radius,
-        center_az + radius,
-        center_alt - radius,
-        center_alt + radius
-    ]
-
-    # Draw the moon
-    ax.imshow(moon_image, extent=extent, origin='lower', transform=ax.transData, zorder=5)
-
-    # Optional: glow using a faint outer circle
-    glow = Circle((center_az, center_alt), radius * 2.5, color='white', alpha=0.03, lw=0, zorder=4)
-    ax.add_patch(glow)
-
-    # Outline
-    ax.add_patch(Circle((center_az, center_alt), radius, edgecolor='white', facecolor='none', lw=0.3, zorder=6))
-
-
 def plot_moon_phase_info(ax, observer, local_dt, local_tz):
     """
-    Add moon phase information to the top left corner of the plot.
+    Add moon phase information to the top left corner of the star map.
     
     Parameters:
     -----------
     ax : matplotlib.axes.Axes
         The axes to plot on
     observer : ephem.Observer
-        The observer's location
+        The observer location
     local_dt : datetime
         The local date and time
     local_tz : timezone
         The local timezone
     """
-    # Get moon phase
-    illum, name, lunar_day, next_new, next_full = get_moon_phase(local_dt)
+    # Create moon object
+    moon = ephem.Moon()
     
-    # Format date
-    date_str = local_dt.strftime('%Y-%m-%d')
+    # Convert local time to UTC for ephem calculations
+    utc_dt = local_dt.astimezone(utc)
+    today = ephem.Date(utc_dt.replace(tzinfo=None))
     
+    # Set observer date
+    observer.date = today
     
-    # Calculate Bengali calendar date
-    # Note: This is a simplified calculation and may need refinement
-    bengali_months = ["Boishakh", "Jyoishtho", "Asharh", "Shrabon", "Bhadro", "Ashwin", 
-                     "Kartik", "Ogrohayon", "Poush", "Magh", "Falgun", "Choitro"]
-    bengali_year = local_dt.year - 593  # Approximate conversion
-    bengali_month_idx = (local_dt.month + 3) % 12  # Bengali year starts in mid-April
-    bengali_date = local_dt.day
-    bengali_month = bengali_months[bengali_month_idx]
+    # Calculate moon phase using last new moon and last full moon
+    last_new_moon = ephem.previous_new_moon(today).datetime()
+    last_full_moon = ephem.previous_full_moon(today).datetime()
+    next_new_moon = ephem.next_new_moon(today).datetime()
+    next_full_moon = ephem.next_full_moon(today).datetime()
+    
+    # Convert to local time
+    last_new_moon = utc.localize(last_new_moon).astimezone(local_tz)
+    last_full_moon = utc.localize(last_full_moon).astimezone(local_tz)
+    next_new_moon = utc.localize(next_new_moon).astimezone(local_tz)
+    next_full_moon = utc.localize(next_full_moon).astimezone(local_tz)
+    
+    # Calculate lunar day (1-30)
+    # Lunar month is approximately 29.53 days
+    lunar_month = 29.53
+    
+    # Calculate days since last new moon
+    days_since_new = (local_dt - last_new_moon).total_seconds() / (24 * 3600)
+    
+    # Calculate lunar day (1-30)
+    lunar_day = int(days_since_new % lunar_month) + 1
+    
+    # Calculate phase as a fraction (0.0 to 1.0)
+    # 0.0 = new moon, 0.5 = full moon, 1.0 = next new moon
+    phase = (days_since_new % lunar_month) / lunar_month
+    
+    # Get moon phase name
+    name = get_moon_phase_name(phase)
+    
+    # Calculate Bengali date
+    bengali_month, bengali_date = calculate_bengali_date(local_dt)
+    
+    # Determine which is closer by comparing total seconds
+    days_to_full = (next_full_moon - local_dt).total_seconds()
+    days_to_new = (next_new_moon - local_dt).total_seconds()
+    
+    if days_to_full < days_to_new:
+        next_event = "Full Moon"
+        next_date = next_full_moon
+        days_until = (next_full_moon - local_dt).days
+    else:
+        next_event = "New Moon"
+        next_date = next_new_moon
+        days_until = (next_new_moon - local_dt).days
+    
+    # Format the next moon date
+    next_moon_str = next_date.strftime("%d %b %H:%M")
     
     # Create the moon phase info text with multiple lines
-    moon_info = (f"Moon Phase: {name}\n"
-                f"Lunar Day: {lunar_day:.0f}\n"
-                f"Bengali: {bengali_month} {bengali_date}, {bengali_year}")
+    moon_info = (f"$\\bf{{Phase:}}$ {name}\n"
+                f"$\\bf{{Tithi:}}$ {lunar_day:.1f}\n"
+                f"$\\bf{{Bengali:}}$ {bengali_month} {bengali_date}\n"
+                f"{next_event}: {next_moon_str} ({days_until} days)")
     
-    # Draw the detailed moon phase diagram
-    #draw_celestial_moon(ax, phase, center_az=-175, center_alt=88, moon_diameter_deg=5)
+    # Load the appropriate moon phase image
+    moonphase_folder = "C:\\sky\\moonphase"
+    moon_day = int(lunar_day)
+    moon_image_path = os.path.join(moonphase_folder, f"moon_day_{moon_day:02d}.png")
     
-    # Add text to the top left corner with 50px padding
-    ax.text(20/ax.get_window_extent().width, 1 - 20/ax.get_window_extent().height, moon_info,
-            transform=ax.transAxes,
-            horizontalalignment='left',
-            verticalalignment='top',
-            color='white',
-            fontsize=10,
-            bbox=dict(facecolor='black', alpha=0.5, edgecolor='none', pad=5))
+    # Check if the image exists
+    if os.path.exists(moon_image_path):
+        # Load the image
+        moon_img = mpimg.imread(moon_image_path)
+        logging.info(f"Moon image path: {moon_image_path}")
+        # Create an inset axes for the moon image
+        # Position: left, bottom, width, height (in axes coordinates)
+        padding = 0  # 2% padding from top and left
+        size = 0.03     # 15% of figure size
+        
+        moon_ax = ax.inset_axes([padding, 1 - padding - size - 0.017 , size, size])  
+        moon_ax.imshow(moon_img)
+        moon_ax.axis('off')  # Hide the axes
+        
+        # Add text to the right of the moon image
+    ax.text(padding + size + 0.003, 1 - padding - size/2, moon_info, transform=ax.transAxes,
+            color='white', fontsize=8, ha='left', va='top',
+            bbox=dict(facecolor='black', alpha=0.7, edgecolor='none', pad=5))
     
     # Return the moon phase data for potential use elsewhere
     return {
-        'phase': illum,
+        'phase': phase,
         'phase_name': name,
-        'date': date_str
-    } 
+        'date': next_date.strftime('%Y-%m-%d')
+    }
+
+def get_moon_phase_name(phase):
+    if phase < 0.03 or phase > 0.97:
+        return "New Moon"
+    elif phase < 0.22:
+        return "Waxing Crescent"
+    elif phase < 0.28:
+        return "First Quarter"
+    elif phase < 0.47:
+        return "Waxing Gibbous"
+    elif phase < 0.53:
+        return "Full Moon"
+    elif phase < 0.72:
+        return "Waning Gibbous"
+    elif phase < 0.78:
+        return "Last Quarter"
+    else:
+        return "Waning Crescent"
+
+def calculate_bengali_date(local_dt):
+    """
+    Rough Bengali date approximation.
+    """
+    bengali_months = ["Boishakh", "Jyoishtho", "Asharh", "Shrabon", "Bhadro", "Ashwin",
+                      "Kartik", "Ogrohayon", "Poush", "Magh", "Falgun", "Choitro"]
+    
+    # Bengali new year typically starts April 14-15
+    if (local_dt.month < 4) or (local_dt.month == 4 and local_dt.day < 14):
+        bengali_year = local_dt.year - 594
+    else:
+        bengali_year = local_dt.year - 593
+
+    # Month determination
+    if local_dt.month == 4 and local_dt.day >= 14:
+        month_idx = 0  # Boishakh
+        bengali_day = local_dt.day - 13
+    else:
+        # Mapping
+        # Note: This part is still rough, true Bengali months start mid-Gregorian month
+        rough_month_offsets = {
+            1: 8,  # January - Poush
+            2: 9,  # February - Magh
+            3: 10, # March - Falgun
+            4: 11, # April (before 14) - Choitro
+            5: 1,  # May - Jyoishtho
+            6: 2,  # June - Asharh
+            7: 3,  # July - Shrabon
+            8: 4,  # August - Bhadro
+            9: 5,  # September - Ashwin
+            10: 6, # October - Kartik
+            11: 7, # November - Ogrohayon
+            12: 8  # December - Poush
+        }
+        month_idx = rough_month_offsets[local_dt.month]
+        bengali_day = local_dt.day
+
+    bengali_month = bengali_months[month_idx]
+    return bengali_month, bengali_day

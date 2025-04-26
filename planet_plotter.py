@@ -49,36 +49,13 @@ def center_azimuth(azimuth):
     """Convert from 0-360 to -180 to 180 with North at 0."""
     return (azimuth - 180) % 360 - 180
 
-def get_text_color(bg_color):
-    """
-    Determine if text should be black or white based on background color brightness.
-    
-    Parameters:
-    -----------
-    bg_color : str
-        Hex color code or named color
-    
-    Returns:
-    --------
-    str
-        'black' for light backgrounds, 'white' for dark backgrounds
-    """
-    # Convert color to RGB values
-    rgb = mcolors.to_rgb(bg_color)
-    
-    # Calculate perceived brightness using ITU-R BT.709 coefficients
-    brightness = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
-    
-    # Return black for light backgrounds, white for dark
-    return 'black' if brightness > 0.5 else 'white'
-
-def mark_planet(ax, x, y, symbol, color, local_dt, local_tz, y_offset=1):
+def mark_planet(ax, x, y, symbol, color, text_color, local_dt, local_tz, y_offset=1):
     """Mark a point on the plot with a planet symbol."""
     # Plot the planet as a dot
     ax.scatter([x], [y], color=color, edgecolor='black', s=300, zorder=5)
     
     # Add the planet symbol as text
-    ax.text(x, y, symbol, color=get_text_color(color), fontsize=16, fontweight='bold', ha='center', va='center', zorder=10)
+    ax.text(x, y, symbol, color=text_color, fontsize=16, fontweight='bold', ha='center', va='center', zorder=10)
 
 
 def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
@@ -98,7 +75,7 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
         The local timezone
     include_planets : list, optional
         List of planets to include. If None, all planets are included.
-        Options: ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn']
+        Options: ['Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto', 'Moon']
     
     Returns:
     --------
@@ -107,11 +84,15 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
     """
     # Define planet colors and symbols
     planet_info = {
-        'Mercury': {'color': '#1A873A', 'symbol': '☿'},  # Green
-        'Venus': {'color': '#FFFFE3', 'symbol': '♀'},    # White
-        'Mars': {'color': '#700101', 'symbol': '♂'},     # Red
-        'Jupiter': {'color': '#FFDD40', 'symbol': '♃'},  # Yellow
-        'Saturn': {'color': '#042682', 'symbol': '♄'}    # Blue
+        'Mercury': {'color': '#1A873A', 'symbol': '☿', 'text_color': '#105223'},  # Green
+        'Venus': {'color': '#FFFFE3', 'symbol': '♀', 'text_color': '#C4C4AE'},    # White
+        'Mars': {'color': '#700101', 'symbol': '♂', 'text_color': '#2B0007'},     # Red
+        'Jupiter': {'color': '#FFDD40', 'symbol': '♃', 'text_color': '#A8922A'},  # Yellow
+        'Saturn': {'color': '#042682', 'symbol': '♄', 'text_color': '#021547'},   # Dark Blue
+        'Uranus': {'color': '#5B8FB9', 'symbol': '⛢', 'text_color': '#021547'},  # Light Blue
+        'Neptune': {'color': '#3E66F9', 'symbol': '♆', 'text_color': '#021547'},  # Deep Blue
+        'Pluto': {'color': '#8B4513', 'symbol': '♇', 'text_color': '#021547'},    # Brown
+        'Moon': {'color': '#FFFFFF', 'symbol': '☽', 'text_color': '#CCCCCC'}      # White
     }
     
     # Create planet objects
@@ -120,7 +101,11 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
         'Venus': ephem.Venus(),
         'Mars': ephem.Mars(),
         'Jupiter': ephem.Jupiter(),
-        'Saturn': ephem.Saturn()
+        'Saturn': ephem.Saturn(),
+        'Uranus': ephem.Uranus(),
+        'Neptune': ephem.Neptune(),
+        'Pluto': ephem.Pluto(),
+        'Moon': ephem.Moon()
     }
     
     # If include_planets is None, include all planets
@@ -147,10 +132,11 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
                 
                 # Get planet color and symbol
                 color = planet_info[planet_name]['color']
+                text_color = planet_info[planet_name]['text_color']
                 symbol = planet_info[planet_name]['symbol']
                 
                 # Mark the planet
-                mark_planet(ax, az_centered, altitude, symbol, color, local_dt, local_tz)
+                mark_planet(ax, az_centered, altitude, symbol, color, text_color, local_dt, local_tz)
                 
                 plotted_planets[planet_name] = planet
             else:

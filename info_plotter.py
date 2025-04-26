@@ -60,25 +60,23 @@ def plot_location_info(ax, observer, local_dt, local_tz):
     tz_name = local_tz.zone
     
     # Create the location info text
-    location_info = fr"$\bf{{Location:}}$ {location_name} ({lat_str}; {lon_str})"
-    time_info = fr"$\bf{{Time:}}$ {date_str} {time_str} {tz_name}"
+    info = (fr"$\bf{{Location:}}$ {location_name} ({lat_str}; {lon_str})"
+           "\n"
+           fr"$\bf{{Time:}}$ {date_str} {time_str} {tz_name}")
     
     # Add text to the top right corner
     # Use transform=ax.transAxes to position relative to the axes (0-1 range)
-    ax.text(0.98, 0.98, location_info, 
-            transform=ax.transAxes, 
-            horizontalalignment='right',
-            verticalalignment='top',
-            color='white',
-            fontsize=10,
-            bbox=dict(facecolor='black', alpha=0.5, edgecolor='none', pad=5))
     
-    ax.text(0.98, 0.95, time_info,
+    # Draw the detailed moon phase diagram
+    #draw_celestial_moon(ax, phase, center_az=-175, center_alt=88, moon_diameter_deg=5)
+    
+    # Add text to the top left corner with 50px padding
+    ax.text(0.98, 0.98, info,
             transform=ax.transAxes,
             horizontalalignment='right',
             verticalalignment='top',
             color='white',
-            fontsize=10,
+            fontsize=8,
             bbox=dict(facecolor='black', alpha=0.5, edgecolor='none', pad=5))
 
 def get_location_name(lat_deg, lon_deg):

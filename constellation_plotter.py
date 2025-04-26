@@ -27,6 +27,7 @@ SHOW_ONLY_CONSTELLATIONS = [
     
     # Additional constellations
     "Cen",  # Centaurus
+    "Cru",  # Crux
     "Car",  # Carina
     "Boo",  # Bootes
     "Crv",  # Corvus
