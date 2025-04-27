@@ -40,7 +40,7 @@ python starmap.py [options]
 
 Options:
 - `--date YYYY-MM-DD`     Date in YYYY-MM-DD format (default: current date)
-- `--time HH:MM:SS`       Time in HH:MM:SS format (default: 22:00:00)
+- `--time HH:MM:SS`       Time in HH:MM:SS format (default: now)
 - `--lat DECIMAL`         Latitude in decimal degrees (default: -27.47)
 - `--lon DECIMAL`         Longitude in decimal degrees (default: 153.02)
 - `--elev METERS`         Elevation in meters (default: 0)
@@ -51,7 +51,7 @@ Options:
 Example:
 ```bash
 python starmap.py --date 2024-04-15 --time 20:00:00 --lat 40.7128 --lon -74.0060 --timezone America/New_York --setAsWallpaper
-python starmap.py --time 20:00:00 --lat -27.47 --lon 153.02 --timezone Australia/Brisbane --setAsWallpaper
+python starmap.py --time 20:00:00 --setAsWallpaper
 python starmap.py --lat 35.6762 --lon 139.6503 --timezone Asia/Tokyo --output tokyo_stars.png
 python starmap.py --lat 51.5074 --lon -0.1278 --timezone Europe/London --date 2024-12-21 --time 23:00:00
 

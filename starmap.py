@@ -25,6 +25,7 @@ from plotters.moonphase_plotter import plot_moon_phase_info
 from plotters.line_plotter import plot_celestial_lines
 # Import the wallpaper setting module
 from utils.set_wallpaper import set_wallpaper
+from utils.resource_utils import resource_path
 from matplotlib.colors import to_rgba
 
 # Set up logging with rotation
@@ -81,7 +82,7 @@ def parse_arguments():
     # Date and time arguments
     parser.add_argument('--date', type=str, default=datetime.now().strftime('%Y-%m-%d'),
                         help='Date in YYYY-MM-DD format (default: 2025-04-26)')
-    parser.add_argument('--time', type=str, default='22:00:00',
+    parser.add_argument('--time', type=str, default=datetime.now().strftime('%H:%M:%S'),
                         help='Time in HH:MM:SS format (default: 22:00:00)')
     
     # Location arguments
@@ -233,9 +234,11 @@ def add_altitude_scale(ax, x_pos=0):
 def load_config():
     """Load configuration from config.yaml file."""
     try:
-        config_path = Path('config.yaml')
+        # Get the directory where the script is located
+        config_path = resource_path('config.yaml', external=True)
         with open(config_path, 'r') as f:
-            return yaml.safe_load(f)
+            config = yaml.safe_load(f)
+        return config
     except Exception as e:
         logging.error(f"Error loading config: {e}")
         return {}
@@ -356,10 +359,28 @@ def main():
     plt.tight_layout()
     print("Skymap generated successfully!")
 
+    def cleanup_old_images(directory):
+        """Delete older images from the directory, keeping only the max_generated_images most recent ones."""
+        # Get max_generated_images from config
+        max_images = config.get('max_generated_images', 20)
+        
+        # Get all PNG files in the directory
+        image_files = [f for f in os.listdir(directory) if f.endswith('.png')]
+        
+        # Sort files by modification time (newest first)
+        image_files.sort(key=lambda x: os.path.getmtime(os.path.join(directory, x)), reverse=True)
+        
+        # Delete files beyond the max_images limit
+        for old_file in image_files[max_images:]:
+            try:
+                os.remove(os.path.join(directory, old_file))
+                logging.info(f"Deleted old image: {old_file}")
+            except Exception as e:
+                logging.error(f"Error deleting old image {old_file}: {e}")
+
+
     def save_figure(fig, filename, dpi=150):
         """Save the figure to a file."""
-        # Load configuration
-        config = load_config()
         
         # Get resolution from config
         target_width_px = config.get('resolution', {}).get('width', 3840)
@@ -376,22 +397,41 @@ def main():
         # Remove any white space around the figure
         fig.tight_layout(pad=0)
         
+        # Create descriptive filename with actual values
+        formatted_date = local_dt.strftime('%Y%m%d')
+        formatted_time = local_dt.strftime('%H%M%S')
+        formatted_lat = f"{float(args.lat):.2f}"
+        formatted_lon = f"{float(args.lon):.2f}"
+        descriptive_filename = f"starmap_lat{formatted_lat}_lon{formatted_lon}_{formatted_date}_{formatted_time}.png"
+        
+        # Create generated directory if it doesn't exist
+        generated_dir = os.path.abspath("generated")
+        os.makedirs(generated_dir, exist_ok=True)
+        
+        # Get absolute path for the output file
+        output_path = os.path.join(generated_dir, descriptive_filename)
+        
+        # Keep only the 20 latest images
+        cleanup_old_images(generated_dir)
         # Save with black background and black border
-        fig.savefig(filename, dpi=dpi, bbox_inches='tight', pad_inches=0, facecolor='black', edgecolor='black')
-        logging.info(f"Saved figure to {filename}")
+        fig.savefig(output_path, dpi=dpi, bbox_inches='tight', pad_inches=0, facecolor='black', edgecolor='black')
+        logging.info(f"Saved figure to {output_path}")
         
         # If setAsWallpaper is True, set the image as wallpaper
         if args.setAsWallpaper:
-            if set_wallpaper(filename):
-                print(f"Successfully set {filename} as desktop wallpaper")
+            if set_wallpaper(output_path):
+                print(f"Successfully set {output_path} as desktop wallpaper")
             else:
-                print(f"Failed to set {filename} as desktop wallpaper")
+                print(f"Failed to set {output_path} as desktop wallpaper")
+        
+                
+    
 
     save_figure(fig, args.output)  # Save the plot to a file
     
     # Only show the plot if setAsWallpaper is False
-    if not args.setAsWallpaper:
-        plt.show()
+    # if not args.setAsWallpaper:
+    #     plt.show()
     
 if __name__ == "__main__":
     main()

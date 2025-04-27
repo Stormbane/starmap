@@ -1,9 +1,14 @@
-max_constellations_to_plot: 20
+max_constellations_to_plot: 50
+max_generated_images: 50
 resolution:
   width: 3840
   height: 2160    
   dpi: 150
 planets:
+  Sun:
+    color: '#FFD700'
+    symbol: "\u2609"
+    text_color: '#B8860B'
   Jupiter:
     color: '#FFDD40'
     symbol: "\u2643"

@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def resource_path(relative_path):
+def resource_path(relative_path, external=False):
     """
     Get absolute path to resource, works for Nuitka, PyInstaller, and normal execution.
     
@@ -18,15 +18,18 @@ def resource_path(relative_path):
         FileNotFoundError: If the resource cannot be found
     """
     try:
-        # PyInstaller creates a temp folder and stores path in _MEIPASS
-        if hasattr(sys, '_MEIPASS'):
-            base_path = sys._MEIPASS
-        # Nuitka creates a temp folder and stores path in __compiled__
-        elif hasattr(sys, 'frozen'):
-            base_path = os.path.dirname(sys.executable)
+        if external:
+            # External file like config.yaml — next to exe or script
+            if getattr(sys, 'frozen', False):
+                base_path = os.path.dirname(sys.executable)
+            else:
+                base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         else:
-            # Normal execution - use the directory of the script
-            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            # Bundled internal resource (in _MEIPASS if frozen)
+            if hasattr(sys, '_MEIPASS'):
+                base_path = sys._MEIPASS
+            else:
+                base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         
         full_path = os.path.join(base_path, relative_path)
         
@@ -42,21 +45,3 @@ def resource_path(relative_path):
         logger.error(f"Error resolving resource path: {e}")
         # Return the original path as fallback
         return os.path.join(os.path.abspath("."), relative_path)
-
-def ensure_directory_exists(directory_path):
-    """
-    Ensure that a directory exists, creating it if necessary.
-    
-    Args:
-        directory_path (str): The path to the directory
-        
-    Returns:
-        str: The absolute path to the directory
-    """
-    try:
-        abs_path = os.path.abspath(directory_path)
-        os.makedirs(abs_path, exist_ok=True)
-        return abs_path
-    except Exception as e:
-        logger.error(f"Error creating directory {directory_path}: {e}")
-        raise 

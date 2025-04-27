@@ -19,7 +19,7 @@ def load_config():
         Configuration dictionary
     """
     try:
-        config_path = resource_path('config.yaml')
+        config_path = resource_path('config.yaml', external=True)
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         return config
@@ -111,6 +111,7 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
     
     # Create planet objects
     planets = {
+        'Sun': ephem.Sun(),
         'Mercury': ephem.Mercury(),
         'Venus': ephem.Venus(),
         'Mars': ephem.Mars(),

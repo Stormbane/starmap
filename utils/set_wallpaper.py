@@ -21,7 +21,9 @@ def set_wallpaper(image_path):
     """
     try:
         # Convert to absolute path using resource_path
-        abs_path = resource_path(image_path)
+        # the image path is already an absolute path
+        abs_path = image_path
+        #resource_path(image_path)
         
         # Check if file exists
         if not os.path.exists(abs_path):
@@ -54,7 +56,31 @@ def set_wallpaper(image_path):
             logger.info(f"Successfully set wallpaper to: {abs_path}")
             return True
         else:
-            logger.error("Failed to set wallpaper")
+            logger.error(f"Failed to set wallpaper to: {abs_path}")
+            # Get error code and message from Windows API
+            error_code = ctypes.get_last_error()
+            error_msg = ctypes.FormatError(error_code)
+            logger.error(f"Windows API Error {error_code}: {error_msg}")
+            
+            # Check common failure conditions
+            if not os.path.isabs(abs_path):
+                logger.error("Path must be absolute")
+            if not os.access(abs_path, os.R_OK):
+                logger.error("No read permissions for file")
+            if os.path.getsize(abs_path) == 0:
+                logger.error("File is empty")
+                
+            # Check file format
+            try:
+                from PIL import Image
+                img = Image.open(abs_path)
+                logger.info(f"Image format: {img.format}, Size: {img.size}, Mode: {img.mode}")
+            except Exception as e:
+                logger.error(f"Invalid or corrupted image file: {e}")
+                
+            # Check if path contains non-ASCII characters
+            if not all(ord(c) < 128 for c in abs_path):
+                logger.error("Path contains non-ASCII characters which may cause issues")
             return False
             
     except Exception as e:

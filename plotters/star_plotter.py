@@ -26,7 +26,7 @@ def load_config():
         Configuration dictionary
     """
     try:
-        config_path = resource_path('config.yaml')
+        config_path = resource_path('config.yaml', external=True)
         with open(config_path, 'r') as f:
             config = yaml.safe_load(f)
         return config

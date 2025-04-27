@@ -11,7 +11,7 @@ from utils.resource_utils import resource_path, ensure_directory_exists
 class StarMapUI:
     def __init__(self):
         self.window = ctk.CTk()
-        self.window.title("Sky Map Generator")
+        self.window.title("Star Map Generator")
         self.window.geometry("800x1000")
         
         # Set theme
@@ -202,8 +202,6 @@ class StarMapUI:
         with open("config.yaml", "w") as f:
             yaml.dump(config, f, default_flow_style=False)
         
-        # Create output directory if it doesn't exist
-        output_dir = ensure_directory_exists("generated_images")
         
         # Generate image (placeholder for now)
         width, height = 1920, 1080
