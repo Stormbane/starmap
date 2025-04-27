@@ -41,6 +41,7 @@ ENV/
 *.tiff
 *.ico
 *.log
+*.exe
 
 # PyInstaller
 *.manifest
