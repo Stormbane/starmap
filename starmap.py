@@ -2,9 +2,13 @@ import ephem
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
+import os
+from logging.handlers import RotatingFileHandler
 from pytz import timezone, utc
 from datetime import datetime, timedelta
 import argparse
+import yaml
+from pathlib import Path
 # Import the planet plotting module
 from plotters.planet_plotter import plot_planets
 # Import the star plotting module
@@ -23,8 +27,51 @@ from plotters.line_plotter import plot_celestial_lines
 from utils.set_wallpaper import set_wallpaper
 from matplotlib.colors import to_rgba
 
+# Set up logging with rotation
+def setup_logging():
+    """Set up logging with rotation to logs/starmap directory."""
+    # Create logs directory if it doesn't exist
+    log_dir = Path('logs')
+    log_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Configure logging
+    log_file = log_dir / 'starmap.log'
+    
+    # Create a formatter
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    
+    # Create a rotating file handler
+    # 5MB per file, keep 5 backup files
+    file_handler = RotatingFileHandler(
+        log_file, 
+        maxBytes=5*1024*1024,  # 5MB
+        backupCount=5,
+        encoding='utf-8'
+    )
+    file_handler.setFormatter(formatter)
+    
+    # Create a console handler
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(formatter)
+    
+    # Get the root logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    
+    # Remove any existing handlers
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+    
+    # Add the handlers
+    logger.addHandler(file_handler)
+    logger.addHandler(console_handler)
+    
+    logging.info("Logging initialized with rotation")
+
+# Initialize logging
+setup_logging()
+
 # Logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def parse_arguments():
@@ -183,9 +230,21 @@ def add_altitude_scale(ax, x_pos=0):
         if degree not in major_ticks:  # Skip major tick positions
             ax.plot([x_pos-0.25, x_pos+0.25], [degree, degree], color='white', linewidth=1)
 
+def load_config():
+    """Load configuration from config.yaml file."""
+    try:
+        config_path = Path('config.yaml')
+        with open(config_path, 'r') as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logging.error(f"Error loading config: {e}")
+        return {}
 
 def main():
     """Main function to generate the star map."""
+    # Load configuration
+    config = load_config()
+    
     # Parse command line arguments
     args = parse_arguments()
     
@@ -228,8 +287,12 @@ def main():
     # Set observer date - this is the critical fix
     observer.date = today
     
+    # Get resolution from config
+    width = config.get('resolution', {}).get('width', 3840)
+    height = config.get('resolution', {}).get('height', 2160)
+    
     # Plot setup
-    fig, ax = plt.subplots(figsize=(3840/100, 2160/100), dpi=100)
+    fig, ax = plt.subplots(figsize=(width/100, height/100), dpi=100)
     
     # Call the function to set the background gradient
     set_background_gradient_option2(ax)
@@ -293,12 +356,20 @@ def main():
     plt.tight_layout()
     print("Skymap generated successfully!")
 
-    def save_figure(fig, filename, dpi=150, target_width_px=3840, target_height_px=2160):
+    def save_figure(fig, filename, dpi=150):
         """Save the figure to a file."""
+        # Load configuration
+        config = load_config()
+        
+        # Get resolution from config
+        target_width_px = config.get('resolution', {}).get('width', 3840)
+        target_height_px = config.get('resolution', {}).get('height', 2160)
+        target_dpi = config.get('resolution', {}).get('dpi', 150)
+        
         # Calculate required figure size in inches
-        width_inch = target_width_px / dpi
-        height_inch = target_height_px / dpi
-
+        width_inch = target_width_px / target_dpi
+        height_inch = target_height_px / target_dpi
+        
         # Set the figure size
         fig.set_size_inches(width_inch, height_inch)
 

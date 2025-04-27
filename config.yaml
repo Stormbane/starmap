@@ -1,4 +1,8 @@
 max_constellations_to_plot: 20
+resolution:
+  width: 3840
+  height: 2160    
+  dpi: 150
 planets:
   Jupiter:
     color: '#FFDD40'

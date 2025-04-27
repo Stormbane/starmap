@@ -1,39 +1,66 @@
 # Sky Map Generator
 
-A simple Windows UI application that allows users to generate sky map images with customizable options and set them as wallpapers.
+A Python application that generates accurate night sky maps for use as desktop wallpapers.
 
 ## Features
 
-- Modern dark-themed UI
-- Multiple style options (abstract, nature, space, minimal)
-- Color scheme selection (warm, cool, monochrome, vibrant)
-- Resolution options (1920x1080, 2560x1440, 3840x2160)
-- Option to set generated image as wallpaper
-- Automatic image opening after generation
+- Accurate planet and star positions based on your location and time
+- Configurable resolution options (1080p, 1440p, 4K) in config.yaml
+- Automatic wallpaper setting
+- Configurable planet visibility and appearance
+
+## Requirements
+
+- Python 3.7+
+- Required packages listed in requirements.txt
 
 ## Installation
 
-1. Make sure you have Python 3.7+ installed
-2. Install the required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-1. Run the application:
+Run the application:
 ```bash
-python skymap_ui.py
+python starmap.py
 ```
 
-2. Select your desired options:
-   - Choose an image style
-   - Select a color scheme
-   - Pick a resolution
-   - Check "Set as Wallpaper" if you want to set the generated image as your desktop background
+The application will:
+1. Generate a sky map based on your current location and time
+2. Display the visible planets and stars
+3. Save the image and optionally set it as your wallpaper
 
-3. Click "Generate Image" to create and view the image
+## Command Line Arguments
 
-## Note
+```bash
+python starmap.py [options]
+```
 
-Currently, the app generates a simple white placeholder image. You can modify the `generate_image` method in `skymap_ui.py` to implement your own sky map generation logic. 
+Options:
+- `--date YYYY-MM-DD`     Date in YYYY-MM-DD format (default: current date)
+- `--time HH:MM:SS`       Time in HH:MM:SS format (default: 22:00:00)
+- `--lat DECIMAL`         Latitude in decimal degrees (default: -27.47)
+- `--lon DECIMAL`         Longitude in decimal degrees (default: 153.02)
+- `--elev METERS`         Elevation in meters (default: 0)
+- `--timezone TIMEZONE`   Timezone (default: Australia/Brisbane)
+- `--output FILENAME`     Output filename (default: starmap.png)
+- `--setAsWallpaper`      Set the generated image as desktop wallpaper
+
+Example:
+```bash
+python starmap.py --date 2024-04-15 --time 20:00:00 --lat 40.7128 --lon -74.0060 --timezone America/New_York --setAsWallpaper
+python starmap.py --time 20:00:00 --lat -27.47 --lon 153.02 --timezone Australia/Brisbane --setAsWallpaper
+python starmap.py --lat 35.6762 --lon 139.6503 --timezone Asia/Tokyo --output tokyo_stars.png
+python starmap.py --lat 51.5074 --lon -0.1278 --timezone Europe/London --date 2024-12-21 --time 23:00:00
+
+```
+
+## Configuration
+
+Edit `config.yaml` to customize:
+- Planet colors and symbols
+- Visible celestial bodies
+- Resolution options (1080p, 1440p, 4K)
+- Other display settings 
