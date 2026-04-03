@@ -20,7 +20,7 @@ def load_config():
     """
     try:
         config_path = resource_path('config.yaml', external=True)
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except Exception as e:
@@ -30,7 +30,7 @@ def load_config():
 # Load configuration
 CONFIG = load_config()
 
-def get_planet_position(planet, observer, local_dt):
+def get_planet_position(planet, observer, local_dt, planetName):
     """
     Calculate the position of a planet at a specific date and time.
     
@@ -56,18 +56,57 @@ def get_planet_position(planet, observer, local_dt):
     obs.lat, obs.lon, obs.elev = observer.lat, observer.lon, observer.elev
     obs.date = utc_dt.strftime('%Y/%m/%d %H:%M:%S')
     
-    # Compute planet position
-    planet.compute(obs)
-    
-    # Get altitude and azimuth
-    altitude = np.degrees(planet.alt)
-    azimuth = np.degrees(planet.az)
-    
-    # Check if planet is above horizon
-    if altitude > 0:
-        return azimuth, altitude
+    if planetName in ['Rahu', 'Ketu']:
+        # For Rahu and Ketu, compute using the Moon's ascending node
+        # Compute Moon and Sun positions
+        moon = ephem.Moon()
+        moon.compute(obs)
+
+        sun = ephem.Sun()
+        sun.compute(obs)
+        
+        # Get their ecliptic longitudes
+        moon_ecl = ephem.Ecliptic(moon)
+        sun_ecl = ephem.Ecliptic(sun)
+
+         # Rahu: Moon longitude - Sun longitude
+        rahu_long = (moon_ecl.lon - sun_ecl.lon) % (2 * ephem.pi)
+
+        if planetName == 'Ketu':
+            rahu_long = (rahu_long + ephem.pi) % (2 * ephem.pi)
+
+        # Node lies on the ecliptic plane (lat = 0)
+        node_ecl = ephem.Ecliptic(rahu_long, 0)
+
+        # Convert to RA/Dec
+        ra, dec = node_ecl.to_radec()
+
+         # Create a fixed body at that position
+        node = ephem.FixedBody()
+        node._ra = ra
+        node._dec = dec
+        node.compute(obs)
+
+        altitude = np.degrees(node.alt)
+        azimuth = np.degrees(node.az)
+
+        if altitude > 0:
+            return azimuth, altitude
+        else:
+            return None, None
     else:
-        return None, None
+        # For regular planets, use the standard calculation
+        planet.compute(obs)
+        
+        # Get altitude and azimuth
+        altitude = np.degrees(planet.alt)
+        azimuth = np.degrees(planet.az)
+        
+        # Check if planet is above horizon
+        if altitude > 0:
+            return azimuth, altitude
+        else:
+            return None, None
 
 def center_azimuth(azimuth):
     """Convert from 0-360 to -180 to 180 with North at 0."""
@@ -79,7 +118,7 @@ def mark_planet(ax, x, y, symbol, color, text_color, local_dt, local_tz, y_offse
     ax.scatter([x], [y], color=color, edgecolor='black', s=300, zorder=5)
     
     # Add the planet symbol as text
-    ax.text(x, y, symbol, color=text_color, fontsize=16, fontweight='bold', ha='center', va='center', zorder=10)
+    ax.text(x, y, symbol, color=text_color, fontsize=12, fontweight='bold', ha='center', va='center', zorder=10)
 
 
 def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
@@ -120,7 +159,9 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
         'Uranus': ephem.Uranus(),
         'Neptune': ephem.Neptune(),
         'Pluto': ephem.Pluto(),
-        'Moon': ephem.Moon()
+        'Moon': ephem.Moon(),
+        'Rahu': ephem.Moon(),  # Rahu is the Moon's North Node
+        'Ketu': ephem.Moon(),   # Ketu is the Moon's South Node
     }
     
     # If include_planets is None, include all planets
@@ -135,7 +176,7 @@ def plot_planets(ax, observer, local_dt, local_tz, include_planets=None):
     for planet_name, planet in planets.items():
         if planet_name in include_planets:
             # Get planet position
-            azimuth, altitude = get_planet_position(planet, observer, local_dt)
+            azimuth, altitude = get_planet_position(planet, observer, local_dt, planet_name)
             
             if azimuth is not None and altitude is not None:
                 # Planet is visible

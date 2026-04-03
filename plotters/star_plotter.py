@@ -27,7 +27,7 @@ def load_config():
     """
     try:
         config_path = resource_path('config.yaml', external=True)
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except Exception as e:
@@ -45,6 +45,8 @@ MAX_STARS_TO_PLOT = STAR_CONFIG["stars"]["max_stars_to_plot"]  # Limit the numbe
 BATCH_SIZE = STAR_CONFIG["stars"]["batch_size"]
 # Show magnitude in star labels
 SHOW_MAGNITUDE = STAR_CONFIG["stars"]["show_magnitude"]  # Set to False to hide magnitude in star labels
+SHOW_GALAXY_CENTER = STAR_CONFIG["stars"]["show_galaxy_center"]  # Set to False to hide the galaxy center
+SAGITTARIUS_A_STAR_POSITION = STAR_CONFIG["stars"]["SagittariusA"] 
 
 
 # Cache for constellation names to avoid repeated lookups
@@ -505,8 +507,79 @@ def plot_brightest_stars(ax, observer, local_dt, local_tz):
             
             label = f"{name} m={magnitude:.1f}" if SHOW_MAGNITUDE else name
             ax.text(x, y + 1.5, label, color=color, fontsize=8, ha='center', va='bottom', zorder=6)
+
+    #Draw the galaxy center
+    if SHOW_GALAXY_CENTER:
+        draw_galaxy_center(ax, observer, local_dt, local_tz);
             
     end_time = time.time()
     logging.info(f"Star plotting completed in {end_time - start_time:.2f} seconds")
     
     return plotted_stars 
+
+def draw_galaxy_center(ax, observer, local_dt, local_tz):
+    """
+    Draw Sagittarius A* (the supermassive black hole at the center of our galaxy) on the star map.
+    
+    Parameters:
+    -----------
+    ax : matplotlib.axes.Axes
+        The axes to plot on
+    observer : ephem.Observer
+        The observer location
+    local_dt : datetime
+        The local date and time
+    local_tz : timezone
+        The local timezone
+    """
+    # Get Sagittarius A* configuration from the config
+    sgr_a_config = STAR_CONFIG["stars"]["SagittariusA"]
+    
+    # Fixed position for Sagittarius A* (Galactic Center)
+    # These are the coordinates in right ascension and declination
+    ra = 266.41683  # Right ascension in degrees
+    dec = -29.00781  # Declination in degrees
+    
+    # Create a fixed body at that position
+    sgr_a = ephem.FixedBody()
+    sgr_a._ra = ephem.degrees(str(ra))
+    sgr_a._dec = ephem.degrees(str(dec))
+    
+    # Convert local datetime to UTC
+    utc_dt = local_dt.astimezone(utc)
+    
+    # Create a copy of the observer
+    obs = ephem.Observer()
+    obs.lat, obs.lon, obs.elev = observer.lat, observer.lon, observer.elev
+    obs.date = utc_dt.strftime('%Y/%m/%d %H:%M:%S')
+    
+    # Compute the position
+    sgr_a.compute(obs)
+    
+    # Get altitude and azimuth
+    altitude = np.degrees(sgr_a.alt)
+    azimuth = np.degrees(sgr_a.az)
+    
+    # Check if Sagittarius A* is above the horizon
+    if altitude > 0:
+        # Center the azimuth
+        az_centered = center_azimuth(azimuth)
+        
+        # Get color and symbol from config
+        color = sgr_a_config['color']
+        text_color = sgr_a_config['text_color']
+        symbol = sgr_a_config['symbol']
+        
+        # Plot a larger marker for Sagittarius A*
+        size = 200  # Larger size to make it stand out
+        ax.scatter([az_centered], [altitude], color=color, edgecolor='white', 
+                  s=size, zorder=10, marker='o')
+        
+        # Add a label
+        label = "● Sgr A*"  # Special label for Sagittarius A*
+        ax.text(az_centered, altitude + 2.0, label, color=text_color, 
+               fontsize=12, ha='center', va='bottom', zorder=11, fontweight='bold')
+        
+        logging.info(f"Sagittarius A* is visible at {local_dt} at azimuth {azimuth:.2f}°, altitude {altitude:.2f}°")
+    else:
+        logging.info(f"Sagittarius A* is below the horizon at {local_dt}") 

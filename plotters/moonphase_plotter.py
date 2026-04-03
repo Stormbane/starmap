@@ -114,7 +114,7 @@ def plot_moon_phase_info(ax, observer, local_dt, local_tz):
     days_since_new = (local_dt - last_new_moon).total_seconds() / (24 * 3600)
     
     # Calculate lunar day (1-30)
-    lunar_day = int(days_since_new % lunar_month) + 1
+    lunar_day = (days_since_new % lunar_month) + 1
     
     # Calculate phase as a fraction (0.0 to 1.0)
     # 0.0 = new moon, 0.5 = full moon, 1.0 = next new moon

@@ -1,50 +1,79 @@
+# Maximum number of constellations to plot
 max_constellations_to_plot: 50
+
+# Maximum number of generated images to keep
 max_generated_images: 50
+
+# Resolution settings for the output image
 resolution:
   width: 3840
   height: 2160    
   dpi: 150
+
+# Planet appearance settings
 planets:
+  # Sun settings
   Sun:
-    color: '#FFD700'
-    symbol: "\u2609"
-    text_color: '#B8860B'
+    color: '#FFD700'  # Gold color
+    symbol: "\u2609"  # ☉ Sun symbol
+    text_color: '#B8860B'  # Dark goldenrod
+  # Jupiter settings
   Jupiter:
-    color: '#FFDD40'
-    symbol: "\u2643"
-    text_color: '#A8922A'
+    color: '#FFDD40'  # Bright yellow
+    symbol: "\u2643"  # ♃ Jupiter symbol
+    text_color: '#A8922A'  # Dark yellow
+  # Mars settings
   Mars:
-    color: '#700101'
-    symbol: "\u2642"
-    text_color: '#2B0007'
+    color: '#700101'  # Dark red
+    symbol: "\u2642"  # ♂ Mars symbol
+    text_color: '#2B0007'  # Very dark red
+  # Mercury settings
   Mercury:
-    color: '#1A873A'
-    symbol: "\u263F"
-    text_color: '#105223'
+    color: '#1A873A'  # Green
+    symbol: "\u263F"  # ☿ Mercury symbol
+    text_color: '#105223'  # Dark green
+  # Moon settings
   Moon:
-    color: '#CCCCCC'
-    symbol: "\u263D"
-    text_color: '#7F7F7F'
+    color: '#CCCCCC'  # Light gray
+    symbol: "\u263D"  # ☽ Moon symbol
+    text_color: '#7F7F7F'  # Medium gray
+  # Neptune settings
   Neptune:
-    color: '#3E66F9'
-    symbol: "\u2646"
-    text_color: '#021547'
+    color: '#3E66F9'  # Blue
+    symbol: "\u2646"  # ♆ Neptune symbol
+    text_color: '#021547'  # Dark blue
+  # Pluto settings
   Pluto:
-    color: '#8B4513'
-    symbol: "\u2647"
-    text_color: '#021547'
+    color: '#8B4513'  # Brown
+    symbol: "\u2647"  # ♇ Pluto symbol
+    text_color: '#021547'  # Dark blue
+  # Saturn settings
   Saturn:
-    color: '#042682'
-    symbol: "\u2644"
-    text_color: '#021547'
+    color: '#042682'  # Dark blue
+    symbol: "\u2644"  # ♄ Saturn symbol
+    text_color: '#021547'  # Dark blue
+  # Uranus settings
   Uranus:
-    color: '#5B8FB9'
-    symbol: "\u26E2"
-    text_color: '#021547'
+    color: '#5B8FB9'  # Light blue
+    symbol: "\u26E2"  # ⛢ Uranus symbol
+    text_color: '#021547'  # Dark blue
+  # Venus settings
   Venus:
-    color: '#FFFFE3'
-    symbol: "\u2640"
-    text_color: '#C4C4AE'
+    color: '#FFFFE3'  # Light yellow
+    symbol: "\u2640"  # ♀ Venus symbol
+    text_color: '#C4C4AE'  # Dark yellow
+  # Rahu (North Node) settings
+  Rahu:
+    color: '#FF0000'  # Red
+    symbol: "\u260A"  # ☊ Rahu symbol
+    text_color: '#8B0000'  # Dark red
+  # Ketu (South Node) settings
+  Ketu:
+    color: '#800080'  # Purple
+    symbol: "\u260B"  # ☋ Ketu symbol
+    text_color: '#4B0082'  # Dark purple
+
+# List of constellations to show
 show_only_constellations:
 - Ari
 - Tau
@@ -66,9 +95,28 @@ show_only_constellations:
 - Ori
 - CMa
 - Lup
+- Oph
+- UMa
+- Her
+- Hyi
+- CrA
+- TrA
+- Oph
+- Pav
+- CrB
+- Hya
+
+# Star plotting settings
 stars:
-  batch_size: 500
-  label_mag_limit: 2.5
-  max_stars_to_plot: 9000
-  naked_eye_mag_limit: 6.5
-  show_magnitude: false
+  batch_size: 500  # Number of stars to process in each batch
+  label_mag_limit: 2.5  # Only label stars brighter than this magnitude
+  max_stars_to_plot: 9000  # Maximum number of stars to plot
+  naked_eye_mag_limit: 6.5  # Only plot stars visible to naked eye (brighter than this)
+  show_magnitude: false  # Whether to show star magnitudes
+  show_galaxy_center: true  # Whether to show the galaxy center
+  # Sagittarius A* settings
+  SagittariusA:
+    color: '#000000'  # Black
+    symbol: "\u25CF"  # ● Black circle
+    text_color: '#FFFFFF'  # White
+    fixed_position: true  # This is a fixed position object

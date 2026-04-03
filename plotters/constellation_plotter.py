@@ -22,7 +22,7 @@ def load_config():
     """
     try:
         config_path = resource_path('config.yaml', external=True)
-        with open(config_path, 'r') as f:
+        with open(config_path, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
         return config
     except Exception as e:

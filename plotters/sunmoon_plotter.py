@@ -13,7 +13,7 @@ def get_body_path(body, observer, rise, set):
     """Calculate the path of a celestial body between rise and set times."""
     if set < rise:
         set += timedelta(days=1)
-    times = [rise + timedelta(minutes=i) for i in range(0, int((set - rise).total_seconds() / 60), 20)]
+    times = [rise + timedelta(minutes=i) for i in range(0, int((set - rise).total_seconds() / 60), 5)]
     az, alt, tlist = [], [], []
     for t in times:
         obs = ephem.Observer()
@@ -31,10 +31,10 @@ def get_body_path_with_riseset(body, observer, rise, set):
     """Calculate the path of a celestial body between rise and set times, including exact rise/set positions."""
     if set < rise:
         set += timedelta(days=1)
-    
-    # Times sampled every 20 minutes
-    times = [rise + timedelta(minutes=i) for i in range(0, int((set - rise).total_seconds() / 60), 20)]
-    
+
+    # Times sampled every 5 minutes for smooth curves near zenith
+    times = [rise + timedelta(minutes=i) for i in range(0, int((set - rise).total_seconds() / 60), 5)]
+
     az, alt, tlist = [], [], []
     for t in times:
         obs = ephem.Observer()
@@ -60,6 +60,22 @@ def get_body_path_with_riseset(body, observer, rise, set):
         tlist.insert(0 if event_time == rise else len(tlist), event_time)
 
     return np.array(az), np.array(alt), tlist
+
+def plot_wrapped_path(ax, az_centered, alt, **kwargs):
+    """Plot a path that may wrap around the azimuth boundaries, splitting at discontinuities."""
+    if len(az_centered) < 2:
+        return
+
+    # Detect azimuth jumps > 180° (wrapping around ±180° South boundary)
+    diffs = np.abs(np.diff(az_centered))
+    split_indices = np.where(diffs > 180)[0] + 1
+
+    az_segments = np.split(az_centered, split_indices)
+    alt_segments = np.split(alt, split_indices)
+
+    for az_seg, alt_seg in zip(az_segments, alt_segments):
+        if len(az_seg) > 1:
+            ax.plot(az_seg, alt_seg, **kwargs)
 
 def mark_point(ax, x, y, label, color, time=None, local_tz=None, y_offset=1):
     """Mark a point on the plot with a label and optional time."""
@@ -126,8 +142,8 @@ def plot_sun_path(ax, observer, local_dt, local_tz):
     # Center the azimuths
     sun_az_centered = center_azimuth(sun_az)
     
-    # Plot sun path
-    ax.plot(sun_az_centered, sun_alt, color='gold', linewidth=0.5)
+    # Plot sun path (split at azimuth wrapping boundaries)
+    plot_wrapped_path(ax, sun_az_centered, sun_alt, color='gold', linewidth=0.5)
     
     # Mark key Sun moments
     if len(sun_az_centered) > 0:
@@ -201,8 +217,8 @@ def plot_moon_path(ax, observer, local_dt, local_tz):
     # Center the azimuths
     moon_az_centered = center_azimuth(moon_az)
     
-    # Plot moon path
-    ax.plot(moon_az_centered, moon_alt, color='silver', linewidth=0.5)
+    # Plot moon path (split at azimuth wrapping boundaries)
+    plot_wrapped_path(ax, moon_az_centered, moon_alt, color='silver', linewidth=0.5)
     
     # Mark key Moon moments
     if len(moon_az_centered) > 0:
