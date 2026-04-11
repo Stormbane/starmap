@@ -10,10 +10,24 @@ A Python application that generates accurate night sky maps for use as desktop w
 - Constellation lines for configurable zodiac and major constellations
 - Rahu and Ketu (lunar nodes) plotting
 - Sagittarius A* (galactic center) marker
+- Milky Way band rendered as a soft luminous glow with dithered star texture along the galactic plane
+- Star bloom/glow halos on the brightest stars for a more naturalistic look
 - Configurable resolution (1080p, 1440p, 4K) via config.yaml
 - Automatic desktop wallpaper setting (Windows)
 - Scheduled wallpaper updates via Windows Task Scheduler (see `wallpaper_scheduler/`)
 - Background gradient simulating light pollution near the horizon
+
+### Optional / experimental plotters
+
+The following plotters exist in `plotters/` and can be enabled by uncommenting their
+calls in `starmap.py`. They are currently disabled by default to keep the wallpaper
+visually clean:
+
+- `nakshatra_plotter.py` — draws the ecliptic with the 27 nakshatra (lunar mansion) divisions and highlights the Moon's current nakshatra
+- `deepsky_plotter.py` — renders bright naked-eye deep sky objects (LMC, SMC, Omega Centauri, Carina Nebula, M42, Pleiades, etc.) as soft fuzzy patches
+- Atmospheric extinction (dimming and reddening of stars near the horizon) — commented out in `plotters/star_plotter.py`
+
+See `TODO_visual_enhancements.md` for design notes and `comparisons/` for before/after screenshots of each effect.
 
 ## Requirements
 

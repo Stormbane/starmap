@@ -23,6 +23,9 @@ from plotters.info_plotter import plot_location_info
 from plotters.moonphase_plotter import plot_moon_phase_info
 # Import the celestial lines plotting module
 from plotters.line_plotter import plot_celestial_lines
+from plotters.milkyway_plotter import plot_milky_way
+from plotters.nakshatra_plotter import plot_nakshatras
+from plotters.deepsky_plotter import plot_deep_sky_objects
 # Import the wallpaper setting module
 from utils.set_wallpaper import set_wallpaper
 from utils.resource_utils import resource_path
@@ -306,6 +309,12 @@ def main():
     # Add moon phase information to the top left corner
     plot_moon_phase_info(ax, observer, local_dt_midnight, local_tz)
 
+    # Plot Milky Way band (behind everything else)
+    plot_milky_way(ax, observer, local_dt, local_tz)
+
+    # Plot deep sky objects (behind stars, above milky way)
+    # plot_deep_sky_objects(ax, observer, local_dt, local_tz)
+
     # Plot sun and moon paths
     celestial_data = plot_sun_and_moon(ax, observer, local_dt_midnight, local_tz)
 
@@ -314,6 +323,9 @@ def main():
 
     # Plot constellation lines
     plot_constellations(ax, stars_data, observer, local_dt)
+
+    # Plot nakshatras along the ecliptic
+    # plot_nakshatras(ax, observer, local_dt, local_tz)
 
     # Plot celestial equator and ecliptic lines
     # celestial_lines_data = plot_celestial_lines(ax, observer, local_dt, local_tz)

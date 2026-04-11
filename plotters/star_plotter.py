@@ -432,8 +432,9 @@ def plot_brightest_stars(ax, observer, local_dt, local_tz):
     for i, star_info in enumerate(brightest_stars):
         # Calculate size and alpha based on magnitude
         magnitude = star_info["magnitude"]
+        altitude = star_info["altitude"]
         clamped_mag = max(-2.0, min(magnitude, NAKED_EYE_MAG_LIMIT))
-        
+
         # Size calculation
         base_size = 1.0
         scale_power = 2.0
@@ -441,22 +442,43 @@ def plot_brightest_stars(ax, observer, local_dt, local_tz):
         max_marker_size = 150
         size = min(size, max_marker_size)
         size = max(size, base_size)
-        
+
         # Alpha calculation
         min_alpha = 0.1
         max_alpha = 1.0
         alpha_range = max_alpha - min_alpha
         alpha = min_alpha + alpha_range * ((NAKED_EYE_MAG_LIMIT - clamped_mag) / (NAKED_EYE_MAG_LIMIT - (-2.0)))
         alpha = max(min_alpha, min(max_alpha, alpha))
-        
+
+        # --- Atmospheric extinction (disabled) ---
+        # if altitude < 25:
+        #     alt_rad = max(np.radians(altitude), np.radians(1.0))
+        #     airmass = 1.0 / np.sin(alt_rad)
+        #     extinction_mag = 0.28 * (airmass - 1.0)
+        #     extinction_factor = max(0.05, 10 ** (-0.4 * extinction_mag))
+        #     alpha *= extinction_factor
+        #     size *= (0.5 + 0.5 * extinction_factor)
+
         # Determine marker and color
         if magnitude < LABEL_MAG_LIMIT:
             marker = '*'
         else:
             marker = '.'
-            
+
         temp_k = star_info.get("temp_k")
         color = temperature_to_color(temp_k) if temp_k is not None else 'white'
+
+        # --- Atmospheric reddening (disabled) ---
+        # if altitude < 20:
+        #     reddening = max(0.0, 1.0 - altitude / 20.0)
+        #     try:
+        #         r, g, b_col = mcolors.to_rgb(color)
+        #         r = min(1.0, r + 0.3 * reddening)
+        #         g = g * (1.0 - 0.4 * reddening)
+        #         b_col = b_col * (1.0 - 0.6 * reddening)
+        #         color = mcolors.to_hex((r, g, b_col))
+        #     except (ValueError, TypeError):
+        #         pass
         
         # Collect data for batch plotting
         x_coords.append(star_info["azimuth"])
@@ -480,19 +502,37 @@ def plot_brightest_stars(ax, observer, local_dt, local_tz):
             "temp_k": star_info.get("temp_k")
         }
     
+    # --- Star bloom/glow for brightest stars ---
+    # Add radial halos around stars brighter than mag 1.0
+    bloom_threshold = 1.5
+    bloom_layers = [
+        (6.0, 0.024),   # (size multiplier, alpha) — 20% of original
+        (14.0, 0.012),
+        (25.0, 0.005),
+    ]
+    for i, star_info in enumerate(brightest_stars):
+        if star_info["magnitude"] < bloom_threshold:
+            bx = star_info["azimuth"]
+            by = star_info["altitude"]
+            bsize = sizes[i]
+            bcolor = colors[i]
+            for size_mult, balpha in bloom_layers:
+                ax.scatter([bx], [by], color=bcolor, edgecolor='none',
+                           marker='o', s=bsize * size_mult, zorder=4, alpha=balpha)
+
     # Batch plot stars by marker type for better performance
     unique_markers = set(markers)
     for marker in unique_markers:
         # Find indices for this marker
         indices = [i for i, m in enumerate(markers) if m == marker]
-        
+
         # Extract data for this marker
         x = [x_coords[i] for i in indices]
         y = [y_coords[i] for i in indices]
         s = [sizes[i] for i in indices]
         c = [colors[i] for i in indices]
         a = [alphas[i] for i in indices]
-        
+
         # Plot stars with this marker
         ax.scatter(x, y, color=c, edgecolor='none', marker=marker, s=s, zorder=5, alpha=a)
     
