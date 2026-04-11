@@ -2,6 +2,12 @@
 
 A Python application that generates accurate night sky maps for use as desktop wallpapers.
 
+## Example
+
+![Example sky map](comparisons/06_final_tuned.png)
+
+*Generated for Brisbane, Australia. Shows constellation lines, sun and moon arc paths, planets, the Milky Way band along the galactic plane, and bloom halos on the brightest stars.*
+
 ## Features
 
 - Accurate planet and star positions using PyEphem ephemeris calculations
