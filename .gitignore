@@ -70,3 +70,6 @@ wheels/
 .installed.cfg
 *.egg 
 wallpaper_scheduler/
+
+# Added by smriti setup
+.claude/
