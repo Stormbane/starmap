@@ -37,14 +37,28 @@ See `TODO_visual_enhancements.md` for design notes and `comparisons/` for before
 
 ## Requirements
 
-- Python 3.7+
-- Required packages listed in requirements.txt
+- Windows 10/11 (the wallpaper setter and the scheduled task use Windows APIs)
+- Python 3.10+ — the scheduled task assumes Anaconda at `C:\ProgramData\anaconda3\`. Any 3.10+ install works for manual runs; adjust the path in `wallpaper_scheduler\setup_wallpaper_task.bat` if you use a different Python.
+- Packages listed in `requirements.txt`
 
 ## Installation
 
-```bash
-pip install -r requirements.txt
-```
+1. Clone the repo and `cd` into it:
+   ```bash
+   git clone <repo-url> starmap
+   cd starmap
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. Edit `config.yaml` — set your latitude/longitude/timezone and target resolution.
+4. Smoke-test a one-shot run:
+   ```bash
+   python starmap.py --setAsWallpaper
+   ```
+   The PNG lands in `generated/` and your wallpaper changes.
+5. (Optional) Install the hourly scheduled task — see [Automatic wallpaper scheduling](#automatic-wallpaper-scheduling) below.
 
 ## Usage
 
@@ -82,14 +96,21 @@ python starmap.py --lat 35.6762 --lon 139.6503 --timezone Asia/Tokyo --output to
 python starmap.py --lat 51.5074 --lon -0.1278 --timezone Europe/London --date 2024-12-21 --time 23:00:00
 ```
 
-## Automatic Wallpaper Scheduling
+## Automatic wallpaper scheduling
 
-The `wallpaper_scheduler/` directory contains scripts for automated wallpaper updates:
+The `wallpaper_scheduler/` directory contains `setup_wallpaper_task.bat`, which registers a Windows Task Scheduler job named `StarMapWallpaperUpdater` that regenerates the wallpaper hourly, 24/7.
 
-- `run_starmap.bat` - Runs the starmap generator with `--setAsWallpaper`
-- `setup_wallpaper_task.bat` - Creates a Windows Task Scheduler task (hourly, 6PM-6AM)
+To install:
 
-Run `setup_wallpaper_task.bat` as administrator to install the scheduled task.
+1. Open `wallpaper_scheduler\setup_wallpaper_task.bat` and confirm the `PYTHONW` path matches your Python install (default: `C:\ProgramData\anaconda3\pythonw.exe`).
+2. Right-click the file → **Run as administrator**.
+
+The task invokes `pythonw.exe starmap.py --setAsWallpaper` directly — no `cmd.exe` window flashes when it fires. Logs are written to `logs/starmap.log` (rotating, 5MB × 5).
+
+To remove the task:
+```bash
+schtasks /delete /tn "StarMapWallpaperUpdater" /f
+```
 
 ## Configuration
 
