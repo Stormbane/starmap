@@ -1,8 +1,21 @@
+import sys
+import os
+
+# Anchor cwd to the script directory so relative paths (logs/, generated/) work
+# regardless of how the process is launched (e.g. Task Scheduler).
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+# Under pythonw.exe sys.stdout/stderr are None; print() would crash. Redirect
+# them to a null sink so existing print() calls and StreamHandler are safe.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w')
+
 import ephem
 import numpy as np
 import matplotlib.pyplot as plt
 import logging
-import os
 from logging.handlers import RotatingFileHandler
 from pytz import timezone, utc
 from datetime import datetime, timedelta

@@ -4,21 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 
 # Virtual Environment
 venv/
@@ -44,18 +29,12 @@ ENV/
 *.exe
 generated/
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Jupyter Notebook
-.ipynb_checkpoints
+# wallpaper_scheduler runtime artifacts (the setup .bat itself is tracked)
+wallpaper_scheduler/logs/
+wallpaper_scheduler/*_log.txt
 
 # Distribution / packaging
-.Python
-env/
 build/
-develop-eggs/
 dist/
 downloads/
 eggs/
@@ -68,8 +47,14 @@ var/
 wheels/
 *.egg-info/
 .installed.cfg
-*.egg 
-wallpaper_scheduler/
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Jupyter Notebook
+.ipynb_checkpoints
 
 # Added by smriti setup
 .claude/
